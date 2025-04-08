@@ -4,12 +4,20 @@ import Button from './Button.js';
 import { FaEdit, FaTrash, FaClock } from 'react-icons/fa/index.js';
 
 const TicketDetail = ({ ticket, onEdit, onDelete }) => {
-  const { getTypeById, getStateById, formatUserDisplayName } = useDatabase();
+  const { types, states, formatUserDisplayName } = useDatabase();
   
   if (!ticket) return null;
   
-  const type = getTypeById(ticket.typeId);
-  const state = getStateById(ticket.stateId);
+  // Find type and state by ID (supporting both string and number comparisons)
+  const type = types.find(t => t.id === ticket.typeId || t.id === Number(ticket.typeId) || String(t.id) === ticket.typeId);
+  const state = states.find(s => s.id === ticket.stateId || s.id === Number(ticket.stateId) || String(s.id) === ticket.stateId);
+  
+  // Log the first few items of types and states arrays for debugging
+  console.log("First type:", types.length > 0 ? types[0] : null);
+  console.log("First state:", states.length > 0 ? states[0] : null);
+  console.log("Type and state ID types:", 
+    ticket ? `typeId: ${ticket.typeId} (${typeof ticket.typeId}), stateId: ${ticket.stateId} (${typeof ticket.stateId})` : "No ticket"
+  );
   
   // Format dates
   const formatDate = (dateString) => {
@@ -48,7 +56,9 @@ const TicketDetail = ({ ticket, onEdit, onDelete }) => {
           <div className="space-y-3">
             <div>
               <span className="block text-xs text-coffee-medium">Type</span>
-              <span className="block font-medium text-coffee-dark">{type?.name || 'Unknown'}</span>
+              <span className="block font-medium text-coffee-dark">
+                {type ? type.name : `Unknown (ID: ${ticket.typeId})`}
+              </span>
             </div>
             <div>
               <span className="block text-xs text-coffee-medium">Status</span>
@@ -57,7 +67,7 @@ const TicketDetail = ({ ticket, onEdit, onDelete }) => {
                 state?.name === 'InProgress' ? 'bg-yellow-100 text-yellow-800' : 
                 'bg-coffee-light text-coffee-dark'
               }`}>
-                {state?.name || 'Unknown'}
+                {state ? state.name : `Unknown (ID: ${ticket.stateId})`}
               </span>
             </div>
             <div>

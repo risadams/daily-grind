@@ -24,14 +24,22 @@ const Dashboard = () => {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketActionSuccess, setTicketActionSuccess] = useState({ show: false, message: '' });
 
-  // Helper functions for displaying ticket data
+  // Helper functions for displaying ticket data with type-safe comparisons
   const getTypeName = (typeId) => {
-    const type = types.find(t => t.id === typeId);
+    const type = types.find(t => 
+      t.id === typeId || 
+      t.id === Number(typeId) || 
+      String(t.id) === typeId
+    );
     return type ? type.name : 'Unknown';
   };
 
   const getStateName = (stateId) => {
-    const state = states.find(s => s.id === stateId);
+    const state = states.find(s => 
+      s.id === stateId || 
+      s.id === Number(stateId) || 
+      String(s.id) === stateId
+    );
     return state ? state.name : 'Unknown';
   };
 
