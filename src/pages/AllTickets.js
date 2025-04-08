@@ -8,7 +8,7 @@ import PageHeader from '../components/PageHeader.js';
 
 export default function AllTicketsPage() {
   const { tickets, allTickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
-  
+
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredTickets, setFilteredTickets] = useState([]);
@@ -17,13 +17,13 @@ export default function AllTicketsPage() {
     type: '',
     priority: ''
   });
-  
+
   // State for sorting
   const [sortConfig, setSortConfig] = useState({
     key: 'creationDate',
     direction: 'desc'
   });
-  
+
   // State for ticket modals
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -35,29 +35,29 @@ export default function AllTicketsPage() {
   // Filter and sort tickets when dependencies change
   useEffect(() => {
     let result = [...allTickets];
-    
+
     // Apply search term filter
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
-      result = result.filter(ticket => 
+      result = result.filter(ticket =>
         ticket.title.toLowerCase().includes(lowercasedTerm) ||
         (ticket.description && ticket.description.toLowerCase().includes(lowercasedTerm))
       );
     }
-    
+
     // Apply specific filters
     if (filters.status) {
       result = result.filter(ticket => ticket.stateId === filters.status);
     }
-    
+
     if (filters.type) {
       result = result.filter(ticket => ticket.typeId === filters.type);
     }
-    
+
     if (filters.priority) {
       result = result.filter(ticket => ticket.priorityId === filters.priority);
     }
-    
+
     // Apply sorting
     if (sortConfig.key) {
       result.sort((a, b) => {
@@ -67,7 +67,7 @@ export default function AllTicketsPage() {
           const dateB = new Date(b[sortConfig.key]);
           return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
         }
-        
+
         // Handle other fields
         if (a[sortConfig.key] < b[sortConfig.key]) {
           return sortConfig.direction === 'asc' ? -1 : 1;
@@ -78,10 +78,10 @@ export default function AllTicketsPage() {
         return 0;
       });
     }
-    
+
     setFilteredTickets(result);
   }, [allTickets, searchTerm, filters, sortConfig]);
-  
+
   // Add this debug useEffect
   useEffect(() => {
     if (tickets.length > 0) {
@@ -90,7 +90,7 @@ export default function AllTicketsPage() {
     console.log('Types:', types);
     console.log('States:', states);
   }, [tickets, types, states]);
-  
+
   // Helper functions for ticket operations
   const handleCreateTicket = async (ticketData) => {
     try {
@@ -105,11 +105,11 @@ export default function AllTicketsPage() {
       setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
     }
   };
-  
+
   const handleUpdateTicket = async (ticketData) => {
     try {
       if (!selectedTicket) throw new Error('No ticket selected for update');
-      
+
       const result = await updateTicket(selectedTicket.id, ticketData);
       if (result.success) {
         showSuccessMessage('Ticket updated successfully!');
@@ -122,12 +122,12 @@ export default function AllTicketsPage() {
       setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
     }
   };
-  
+
   const handleCloseTicket = async (ticketId) => {
     try {
       const closedStateId = states.find(state => state.name === 'Closed')?.id;
       if (!closedStateId) throw new Error('Could not find Closed state');
-      
+
       const result = await updateTicket(ticketId, { stateId: closedStateId });
       if (result.success) {
         showSuccessMessage('Ticket closed successfully!');
@@ -138,7 +138,7 @@ export default function AllTicketsPage() {
       setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
     }
   };
-  
+
   // Table sorting handler
   const handleSort = (key) => {
     let direction = 'asc';
@@ -147,93 +147,80 @@ export default function AllTicketsPage() {
     }
     setSortConfig({ key, direction });
   };
-  
+
   // Helper function to display sort direction indicator
   const getSortIcon = (columnName) => {
     if (sortConfig.key !== columnName) return <FaSort className="inline ml-1 text-coffee-medium" />;
-    return sortConfig.direction === 'asc' ? 
-      <FaSortUp className="inline ml-1 text-coffee-dark" /> : 
+    return sortConfig.direction === 'asc' ?
+      <FaSortUp className="inline ml-1 text-coffee-dark" /> :
       <FaSortDown className="inline ml-1 text-coffee-dark" />;
   };
-  
+
   // Helper function for getting formatted names
   const getTypeName = (typeId) => {
     // Check if types is loaded and typeId is valid
     if (!typeId || !types || types.length === 0) return 'Unknown';
-    
+
     // Convert typeId to string for comparison if needed
     const searchId = typeof typeId === 'string' ? typeId : String(typeId);
-    
+
     // Find the type by ID using string comparison to be safe
     const typeObj = types.find(type => String(type.id) === searchId);
     return typeObj ? typeObj.name : 'Unknown';
   };
-  
+
   const getStateName = (stateId) => {
     // Check if states is loaded and stateId is valid
     if (!stateId || !states || states.length === 0) return 'Unknown';
-    
+
     // Convert stateId to string for comparison if needed
     const searchId = typeof stateId === 'string' ? stateId : String(stateId);
-    
+
     // Find the state by ID using string comparison to be safe
     const stateObj = states.find(state => String(state.id) === searchId);
     return stateObj ? stateObj.name : 'Unknown';
   };
-  
+
   // Helper function to get priority name from priorityId
   const getPriorityName = (priorityId) => {
     // Check if priorities is loaded and priorityId is valid
     if (!priorityId || !priorities || priorities.length === 0) return 'Medium';
-    
+
     // Convert priorityId to string for comparison if needed
     const searchId = typeof priorityId === 'string' ? priorityId : String(priorityId);
-    
+
     // Find the priority by ID using string comparison to be safe
     const priorityObj = priorities.find(priority => String(priority.id) === searchId);
     return priorityObj ? priorityObj.name : 'Medium';
   };
-  
+
   // Helper function to get priority color based on priority name
   const getPriorityColorClass = (priorityId) => {
-    const name = getPriorityName(priorityId);
-    
-    switch(name) {
-      case 'Highest':
-        return 'bg-red-100 text-red-800';
-      case 'High':
-        return 'bg-orange-100 text-orange-800';
-      case 'Medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Low':
-        return 'bg-blue-100 text-blue-800';
-      case 'Lowest':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-yellow-100 text-yellow-800'; // Medium as default
-    }
+    const priority = priorities.find(p => p.id === priorityId);
+    const color = priority?.color || 'gray';
+    return `bg-${color}-100 text-${color}-800`;
   };
-  
+
   // Format date to handle edge cases
   const formatDate = (dateString) => {
     if (!dateString) return 'No Date';
-    
+
     const date = new Date(dateString);
-    
+
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
     }
-    
+
     return date.toLocaleDateString();
   };
-  
+
   // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
-  
+
   // Success message handler
   const showSuccessMessage = (message) => {
     setTicketActionSuccess({ show: true, message });
@@ -241,7 +228,7 @@ export default function AllTicketsPage() {
       setTicketActionSuccess({ show: false, message: '' });
     }, 3000);
   };
-  
+
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
       {/* Success message alert */}
@@ -250,12 +237,12 @@ export default function AllTicketsPage() {
           <span className="block sm:inline">{ticketActionSuccess.message}</span>
         </div>
       )}
-      
-      <PageHeader 
-        title="All Tickets" 
+
+      <PageHeader
+        title="All Tickets"
         subtitle="View and manage all tickets in your system"
       />
-      
+
       {/* Filter and Search Bar */}
       <div className="bg-white shadow rounded-lg mb-6 p-4">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
@@ -274,7 +261,7 @@ export default function AllTicketsPage() {
               />
             </div>
           </div>
-          
+
           {/* Filters */}
           <div className="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 items-stretch md:items-center">
             <select
@@ -289,7 +276,7 @@ export default function AllTicketsPage() {
                 <option key={state.id} value={state.id}>{state.name}</option>
               ))}
             </select>
-            
+
             <select
               name="type"
               value={filters.type}
@@ -302,7 +289,7 @@ export default function AllTicketsPage() {
                 <option key={type.id} value={type.id}>{type.name}</option>
               ))}
             </select>
-            
+
             <select
               name="priority"
               value={filters.priority}
@@ -315,7 +302,7 @@ export default function AllTicketsPage() {
                 <option key={priority.id} value={priority.id}>{priority.name}</option>
               ))}
             </select>
-            
+
             <button
               className="inline-flex items-center bg-coffee-primary text-white rounded-lg p-2 hover:bg-coffee-dark"
               onClick={() => setShowTicketModal(true)}
@@ -325,7 +312,7 @@ export default function AllTicketsPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Ticket Grid */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         {loading ? (
@@ -336,7 +323,7 @@ export default function AllTicketsPage() {
         ) : error ? (
           <div className="p-10 text-center">
             <p className="text-red-500">{error}</p>
-            <button 
+            <button
               className="mt-4 bg-coffee-primary text-white px-4 py-2 rounded hover:bg-coffee-dark"
               onClick={() => window.location.reload()}
             >
@@ -363,50 +350,50 @@ export default function AllTicketsPage() {
             <table className="min-w-full divide-y divide-coffee-light">
               <thead className="bg-coffee-light">
                 <tr>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('title')}
                   >
                     Title {getSortIcon('title')}
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('typeId')}
                   >
                     Type {getSortIcon('typeId')}
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('stateId')}
                   >
                     Status {getSortIcon('stateId')}
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('priorityId')}
                   >
                     Priority {getSortIcon('priorityId')}
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('assignedToUserId')}
                   >
                     Assigned To {getSortIcon('assignedToUserId')}
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort('creationDate')}
                   >
                     Created {getSortIcon('creationDate')}
                   </th>
-                  <th 
-                    scope="col" 
+                  <th
+                    scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider"
                   >
                     Actions
@@ -424,9 +411,9 @@ export default function AllTicketsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${getStateName(ticket.stateId) === 'Closed' ? 'bg-green-100 text-green-800' : 
-                        getStateName(ticket.stateId) === 'InProgress' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-blue-100 text-blue-800'}`}
+                        ${getStateName(ticket.stateId) === 'Closed' ? 'bg-green-100 text-green-800' :
+                          getStateName(ticket.stateId) === 'InProgress' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-blue-100 text-blue-800'}`}
                       >
                         {getStateName(ticket.stateId)}
                       </span>
@@ -482,14 +469,14 @@ export default function AllTicketsPage() {
           </div>
         )}
       </div>
-      
+
       {/* Create Ticket Modal */}
-      <Modal 
+      <Modal
         isOpen={showTicketModal}
         onClose={() => setShowTicketModal(false)}
         title="Create New Ticket"
       >
-        <TicketForm 
+        <TicketForm
           onSubmit={handleCreateTicket}
           onCancel={() => setShowTicketModal(false)}
           types={types}
@@ -497,7 +484,7 @@ export default function AllTicketsPage() {
           users={users}
         />
       </Modal>
-      
+
       {/* View Ticket Modal */}
       <Modal
         isOpen={showViewModal}
@@ -507,7 +494,7 @@ export default function AllTicketsPage() {
         }}
         title="Ticket Details"
       >
-        <TicketDetail 
+        <TicketDetail
           ticket={selectedTicket}
           onEdit={() => {
             setShowViewModal(false);
@@ -522,7 +509,7 @@ export default function AllTicketsPage() {
           users={users}
         />
       </Modal>
-      
+
       {/* Edit Ticket Modal */}
       <Modal
         isOpen={showEditModal}
@@ -532,7 +519,7 @@ export default function AllTicketsPage() {
         }}
         title="Edit Ticket"
       >
-        <TicketForm 
+        <TicketForm
           initialData={selectedTicket}
           onSubmit={handleUpdateTicket}
           onCancel={() => {
