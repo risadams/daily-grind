@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from 'react-bootstrap';
-import { useDatabase } from '../hooks/useDatabase';
+import { useDatabase } from '../context/DatabaseContext.js';
 import './TicketCard.css';
 
 export default function TicketCard({ ticket, onCardClick }) {

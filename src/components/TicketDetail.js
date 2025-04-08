@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDatabase } from '../context/DatabaseContext.js';
 import Button from './Button.js';
-import { FaEdit, FaTrash, FaClock, FaLink, FaLevelUpAlt, FaLevelDownAlt } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaClock, FaLink, FaLevelUpAlt, FaLevelDownAlt } from 'react-icons/fa/index.js';
 
 const TicketDetail = ({ ticket, onEdit, onDelete }) => {
   const { tickets, types, states, getTicketChildren, getUserDisplayName } = useDatabase();

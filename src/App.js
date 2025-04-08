@@ -17,6 +17,7 @@ import AllTickets from './pages/AllTickets.js';
 import ForgotPassword from './pages/ForgotPassword.js';
 import NotFound from './pages/NotFound.js';
 import LogoutPage from './pages/LogoutPage.js';
+import BacklogPage from './pages/Backlog.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -47,6 +48,7 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/tickets" element={<AllTickets />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/backlog" element={<BacklogPage />} />
               </Route>
             </Route>
             

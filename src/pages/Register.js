@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
-import { FaGoogle, FaGithub, FaApple, FaMicrosoft } from 'react-icons/fa';
+import { FaGoogle, FaGithub, FaApple, FaMicrosoft } from 'react-icons/fa/index.js';
 
 const Register = () => {
   const [email, setEmail] = useState('');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
-import { FaGoogle, FaGithub, FaApple, FaMicrosoft, FaCoffee, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaGoogle, FaGithub, FaApple, FaMicrosoft, FaCoffee, FaEnvelope, FaLock } from 'react-icons/fa/index.js';
 import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
 

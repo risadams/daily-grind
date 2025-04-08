@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
-import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } from 'react-icons/fa';
+import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } from 'react-icons/fa/index.js';
 import { useNavigate } from 'react-router-dom';
 import { useDatabase } from '../context/DatabaseContext.js';
 import { logout } from '../services/authService.js';

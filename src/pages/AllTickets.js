@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatabase } from '../context/DatabaseContext.js';
-import { FaSort, FaSortUp, FaSortDown, FaSearch, FaEdit, FaEye, FaCheckCircle, FaPlus } from 'react-icons/fa';
+import { FaSort, FaSortUp, FaSortDown, FaSearch, FaEdit, FaEye, FaCheckCircle, FaPlus } from 'react-icons/fa/index.js';
 import Modal from '../components/Modal.js';
 import TicketDetail from '../components/TicketDetail.js';
 import TicketFormDialog from '../components/TicketFormDialog.js';

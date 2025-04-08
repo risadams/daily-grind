@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaCoffee } from 'react-icons/fa';
+import { FaCoffee } from 'react-icons/fa/index.js';
 
 const Logo = ({ size = 'normal' }) => {
   // Determine size class based on prop
