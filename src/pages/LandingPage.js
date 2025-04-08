@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
-import { FaCoffee, FaClock, FaUsers, FaCheckCircle } from 'react-icons/fa/index.js';
+import { FaCoffee, FaClock, FaUsers, FaCheckCircle } from 'react-icons/fa';
 
 const LandingPage = () => {
   const { isAuthenticated } = useAuth();

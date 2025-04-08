@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
-import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt } from 'react-icons/fa/index.js';
+import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt } from 'react-icons/fa';
 
 const MainLayout = () => {
   const { currentUser, logOut } = useAuth();

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
+import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { useDatabase } from '../context/DatabaseContext.js';
 import { logout } from '../services/authService.js';
 import Card from '../components/Card.js';
@@ -9,7 +11,6 @@ import Logo from '../components/Logo.js';
 import Modal from '../components/Modal.js';
 import TicketDetail from '../components/TicketDetail.js';
 import TicketFormDialog from '../components/TicketFormDialog.js';
-import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } from 'react-icons/fa/index.js';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();

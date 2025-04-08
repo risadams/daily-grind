@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes } from 'react-icons/fa/index.js';
+import { FaTimes } from 'react-icons/fa';
 
 const Dialog = ({ isOpen, onClose, title, children, size = 'md' }) => {
   if (!isOpen) return null;

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { FaTimes } from 'react-icons/fa/index.js';
+import { FaTimes } from 'react-icons/fa';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
   const modalRef = useRef();

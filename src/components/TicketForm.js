@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useDatabase } from '../context/DatabaseContext.js';
 import Button from './Button.js';
-import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa/index.js';
+import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa';
 
 const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   const { currentUser } = useAuth();
