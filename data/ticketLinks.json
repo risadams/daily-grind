@@ -1,0 +1,16 @@
+{
+  "ticketLinks": [
+    {
+      "id": 1,
+      "sourceTicketId": 2,
+      "targetTicketId": 1,
+      "type": "related"
+    },
+    {
+      "id": 2,
+      "sourceTicketId": 3,
+      "targetTicketId": 1,
+      "type": "blocks"
+    }
+  ]
+}

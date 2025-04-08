@@ -1,0 +1,39 @@
+{
+  "states": [
+    {
+      "id": 1,
+      "name": "Created",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "ToDo",
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "InProgress",
+      "active": true
+    },
+    {
+      "id": 4,
+      "name": "InReview",
+      "active": true
+    },
+    {
+      "id": 5,
+      "name": "Closed",
+      "active": false
+    },
+    {
+      "id": 6,
+      "name": "WontFix",
+      "active": false
+    },
+    {
+      "id": 7,
+      "name": "Duplicate",
+      "active": false
+    }
+  ]
+}

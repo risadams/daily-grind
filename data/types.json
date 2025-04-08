@@ -1,0 +1,29 @@
+{
+  "types": [
+    {
+      "id": 1,
+      "name": "Story",
+      "description": "User story representing customer value"
+    },
+    {
+      "id": 2,
+      "name": "Bug",
+      "description": "Software defect requiring correction"
+    },
+    {
+      "id": 3,
+      "name": "Task",
+      "description": "General work item"
+    },
+    {
+      "id": 4,
+      "name": "Feature",
+      "description": "Product feature"
+    },
+    {
+      "id": 5,
+      "name": "Epic",
+      "description": "Large body of work that can be broken down"
+    }
+  ]
+}
