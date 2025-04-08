@@ -12,7 +12,6 @@ export function useDatabase() {
 export function DatabaseProvider({ children }) {
   const { currentUser } = useAuth();
   const [tickets, setTickets] = useState([]);
-  const [users, setUsers] = useState([]);
   const [types, setTypes] = useState([]);
   const [states, setStates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,31 +54,6 @@ export function DatabaseProvider({ children }) {
     };
 
     loadReferenceData();
-  }, [currentUser]); // Add currentUser dependency
-
-  // Load user data when user is authenticated
-  useEffect(() => {
-    // Only load data if user is authenticated
-    if (!currentUser) {
-      return;
-    }
-
-    const loadUsers = async () => {
-      try {
-        const result = await dbService.getAllUsers();
-        if (result.success) {
-          setUsers(result.data);
-        } else {
-          console.error('Failed to load users', result.error);
-          // Only log the error
-        }
-      } catch (err) {
-        console.error('Error loading users:', err);
-        // Only set an error if critical for the application
-      }
-    };
-
-    loadUsers();
   }, [currentUser]); // Add currentUser dependency
 
   // Load tickets for current user
@@ -198,9 +172,12 @@ export function DatabaseProvider({ children }) {
     return states.find(state => state.id === stateId) || null;
   };
 
-  // Get a user by ID
-  const getUserById = (userId) => {
-    return users.find(user => user.id === userId) || null;
+  // Format user display name from Firebase user
+  const formatUserDisplayName = (userId) => {
+    if (!userId) return 'Unassigned';
+    if (userId === currentUser?.uid) return currentUser.displayName || currentUser.email || 'Current User';
+    // For other users, we'll show their ID until we have more user info
+    return `User (${userId.slice(0, 6)}...)`;
   };
 
   // Context value
@@ -208,7 +185,6 @@ export function DatabaseProvider({ children }) {
     tickets,
     types,
     states,
-    users,
     loading,
     error,
     createTicket,
@@ -216,7 +192,7 @@ export function DatabaseProvider({ children }) {
     deleteTicket,
     getTypeById,
     getStateById,
-    getUserById
+    formatUserDisplayName
   };
 
   return (

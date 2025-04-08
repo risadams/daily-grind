@@ -14,67 +14,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
 
-// Users collection operations
-export const getUserById = async (userId) => {
-  try {
-    const docRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
-    } else {
-      return { success: false, error: 'User not found' };
-    }
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const getAllUsers = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, 'users'));
-    const users = [];
-    
-    querySnapshot.forEach((doc) => {
-      users.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: users };
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const createUser = async (userData) => {
-  try {
-    // If we have a specific ID to use
-    if (userData.id) {
-      await setDoc(doc(db, 'users', userData.id), userData);
-      return { success: true, data: userData };
-    } else {
-      // Let Firebase generate ID
-      const docRef = await addDoc(collection(db, 'users'), userData);
-      return { success: true, data: { id: docRef.id, ...userData } };
-    }
-  } catch (error) {
-    console.error('Error creating user:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateUser = async (userId, userData) => {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, userData);
-    return { success: true, data: { id: userId, ...userData } };
-  } catch (error) {
-    console.error('Error updating user:', error);
-    return { success: false, error: error.message };
-  }
-};
-
 // Tickets collection operations
 export const getTicketById = async (ticketId) => {
   try {

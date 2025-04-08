@@ -4,14 +4,12 @@ import Button from './Button.js';
 import { FaEdit, FaTrash, FaClock } from 'react-icons/fa/index.js';
 
 const TicketDetail = ({ ticket, onEdit, onDelete }) => {
-  const { getTypeById, getStateById, getUserById } = useDatabase();
+  const { getTypeById, getStateById, formatUserDisplayName } = useDatabase();
   
   if (!ticket) return null;
   
   const type = getTypeById(ticket.typeId);
   const state = getStateById(ticket.stateId);
-  const assignedTo = getUserById(ticket.assignedToUserId);
-  const createdBy = getUserById(ticket.createdByUserId);
   
   // Format dates
   const formatDate = (dateString) => {
@@ -79,17 +77,13 @@ const TicketDetail = ({ ticket, onEdit, onDelete }) => {
             <div>
               <span className="block text-xs text-coffee-medium">Assigned to</span>
               <span className="block font-medium text-coffee-dark">
-                {assignedTo ? 
-                  `${assignedTo.firstname || ''} ${assignedTo.lastname || ''}`.trim() || assignedTo.email 
-                  : 'Unassigned'}
+                {formatUserDisplayName(ticket.assignedToUserId)}
               </span>
             </div>
             <div>
               <span className="block text-xs text-coffee-medium">Created by</span>
               <span className="block font-medium text-coffee-dark">
-                {createdBy ? 
-                  `${createdBy.firstname || ''} ${createdBy.lastname || ''}`.trim() || createdBy.email 
-                  : 'Unknown'}
+                {formatUserDisplayName(ticket.createdByUserId)}
               </span>
             </div>
           </div>

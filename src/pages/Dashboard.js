@@ -13,7 +13,7 @@ import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } fro
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, users, loading, error, createTicket, updateTicket, deleteTicket } = useDatabase();
+  const { tickets, types, states, users, loading, error, createTicket, updateTicket, deleteTicket, formatUserDisplayName } = useDatabase();
   const navigate = useNavigate();
   
   // State for ticket modals
@@ -33,11 +33,6 @@ const Dashboard = () => {
   const getStateName = (stateId) => {
     const state = states.find(s => s.id === stateId);
     return state ? state.name : 'Unknown';
-  };
-
-  const getUserName = (userId) => {
-    const user = users.find(u => u.id === userId);
-    return user ? `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.email : 'Unassigned';
   };
 
   // Get status icon based on state
@@ -305,7 +300,7 @@ const Dashboard = () => {
                           {getStateName(ticket.stateId)}
                         </span>
                         <span className="mt-1 text-xs text-coffee-medium">
-                          Assigned to: {getUserName(ticket.assignedToUserId)}
+                          Assigned to: {formatUserDisplayName(ticket.assignedToUserId)}
                         </span>
                       </div>
                     </div>
