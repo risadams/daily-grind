@@ -102,11 +102,34 @@ export function DatabaseProvider({ children }) {
         createdByUserId: currentUser.uid
       };
       
+      // Handle linked tickets - store them separately to avoid circular references
+      const linkedTickets = ticketWithUser.linkedTickets || [];
+      delete ticketWithUser.linkedTickets;
+      
+      // Create the ticket first
       const result = await dbService.createTicket(ticketWithUser);
       
       if (result.success) {
-        // Update local state
-        setTickets(prevTickets => [...prevTickets, result.data]);
+        // Create ticket links
+        if (linkedTickets.length > 0) {
+          for (const link of linkedTickets) {
+            await dbService.createTicketLink({
+              sourceTicketId: result.data.id,
+              targetTicketId: link.id,
+              linkType: link.linkType || 'Related'
+            });
+          }
+        }
+        
+        // Update local state with the newly created ticket
+        const newTicket = { 
+          ...result.data, 
+          linkedTickets 
+        };
+        
+        setTickets(prevTickets => [...prevTickets, newTicket]);
+        
+        return { success: true, data: newTicket };
       }
       
       return result;
@@ -120,21 +143,54 @@ export function DatabaseProvider({ children }) {
     if (!currentUser) return { success: false, error: 'User not authenticated' };
     
     try {
-      // Add last modified date
-      const updatedTicketData = {
-        ...ticketData,
-        lastModifiedDate: new Date().toISOString()
-      };
+      // Extract linked tickets from the data
+      const linkedTickets = ticketData.linkedTickets || [];
+      const ticketDataForUpdate = { ...ticketData };
+      delete ticketDataForUpdate.linkedTickets;
       
-      const result = await dbService.updateTicket(ticketId, updatedTicketData);
+      // Add last modified date
+      ticketDataForUpdate.lastModifiedDate = new Date().toISOString();
+      
+      // Update the ticket
+      const result = await dbService.updateTicket(ticketId, ticketDataForUpdate);
       
       if (result.success) {
+        // First get existing links and delete them
+        const existingLinks = await dbService.getTicketLinksByTicketId(ticketId);
+        if (existingLinks.success) {
+          for (const link of existingLinks.data) {
+            await dbService.deleteTicketLink(link.id);
+          }
+        }
+        
+        // Create new links
+        for (const link of linkedTickets) {
+          await dbService.createTicketLink({
+            sourceTicketId: ticketId,
+            targetTicketId: link.id,
+            linkType: link.linkType || 'Related'
+          });
+        }
+        
         // Update local state
         setTickets(prevTickets => 
           prevTickets.map(ticket => 
-            ticket.id === ticketId ? { ...ticket, ...updatedTicketData } : ticket
+            ticket.id === ticketId ? { 
+              ...ticket, 
+              ...ticketDataForUpdate,
+              linkedTickets
+            } : ticket
           )
         );
+        
+        return { 
+          success: true, 
+          data: { 
+            id: ticketId, 
+            ...ticketDataForUpdate,
+            linkedTickets
+          } 
+        };
       }
       
       return result;
@@ -148,6 +204,15 @@ export function DatabaseProvider({ children }) {
     if (!currentUser) return { success: false, error: 'User not authenticated' };
     
     try {
+      // Delete all links associated with this ticket
+      const existingLinks = await dbService.getTicketLinksByTicketId(ticketId);
+      if (existingLinks.success) {
+        for (const link of existingLinks.data) {
+          await dbService.deleteTicketLink(link.id);
+        }
+      }
+      
+      // Delete the ticket
       const result = await dbService.deleteTicket(ticketId);
       
       if (result.success) {
@@ -160,6 +225,17 @@ export function DatabaseProvider({ children }) {
       console.error('Error deleting ticket:', err);
       return { success: false, error: err.message };
     }
+  };
+
+  // Get a ticket's children (tickets that have this ticket as parent)
+  const getTicketChildren = (ticketId) => {
+    return tickets.filter(ticket => ticket.parentTicketId === ticketId);
+  };
+
+  // Get linked tickets for a specific ticket
+  const getLinkedTickets = (ticketId) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    return ticket?.linkedTickets || [];
   };
 
   // Get a ticket type by ID
@@ -190,6 +266,8 @@ export function DatabaseProvider({ children }) {
     createTicket,
     updateTicket,
     deleteTicket,
+    getTicketChildren,
+    getLinkedTickets,
     getTypeById,
     getStateById,
     formatUserDisplayName

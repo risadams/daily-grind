@@ -2,17 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useDatabase } from '../context/DatabaseContext.js';
 import Button from './Button.js';
-import { FaSave, FaTimes, FaUser, FaCheck } from 'react-icons/fa/index.js';
+import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa/index.js';
 
 const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false }) => {
   const { currentUser } = useAuth();
-  const { types, states, formatUserDisplayName } = useDatabase();
+  const { tickets, types, states, formatUserDisplayName } = useDatabase();
   
+  // Form data state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [typeId, setTypeId] = useState('');
   const [stateId, setStateId] = useState('');
   const [assignedToUserId, setAssignedToUserId] = useState('');
+  const [parentTicketId, setParentTicketId] = useState('');
+  const [linkedTickets, setLinkedTickets] = useState([]);
+  
+  // Search state - separate for parent and linked tickets
+  const [parentSearchQuery, setParentSearchQuery] = useState('');
+  const [linkedSearchQuery, setLinkedSearchQuery] = useState('');
+  const [showParentSearchResults, setShowParentSearchResults] = useState(false);
+  const [showLinkedSearchResults, setShowLinkedSearchResults] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -24,6 +34,8 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       setTypeId(initialData.typeId || '');
       setStateId(initialData.stateId || '');
       setAssignedToUserId(initialData.assignedToUserId || '');
+      setParentTicketId(initialData.parentTicketId || '');
+      setLinkedTickets(initialData.linkedTickets || []);
     } else {
       // Default for new tickets
       const openState = states.find(s => s.name === 'Open');
@@ -33,6 +45,58 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       setAssignedToUserId(currentUser?.uid || '');
     }
   }, [initialData, states, currentUser]);
+  
+  // Filter tickets based on search query for parent ticket
+  const filteredParentTickets = tickets.filter(ticket => 
+    ticket.id !== initialData.id && // Don't include current ticket in results
+    (ticket.title.toLowerCase().includes(parentSearchQuery.toLowerCase()) || 
+     ticket.id.toLowerCase().includes(parentSearchQuery.toLowerCase()))
+  );
+
+  // Filter tickets based on search query for linked tickets
+  const filteredLinkedTickets = tickets.filter(ticket => 
+    ticket.id !== initialData.id && // Don't include current ticket in results
+    !linkedTickets.some(t => t.id === ticket.id) && // Don't include already linked tickets
+    (ticket.title.toLowerCase().includes(linkedSearchQuery.toLowerCase()) || 
+     ticket.id.toLowerCase().includes(linkedSearchQuery.toLowerCase()))
+  );
+
+  // Add a linked ticket
+  const addLinkedTicket = (ticket) => {
+    // Check if ticket is already linked
+    if (!linkedTickets.some(t => t.id === ticket.id)) {
+      setLinkedTickets([...linkedTickets, { 
+        id: ticket.id, 
+        title: ticket.title,
+        linkType: 'Related' // Default link type
+      }]);
+    }
+    setLinkedSearchQuery('');
+    setShowLinkedSearchResults(false);
+  };
+
+  // Set a parent ticket
+  const setParentTicket = (ticket) => {
+    setParentTicketId(ticket.id);
+    setParentSearchQuery('');
+    setShowParentSearchResults(false);
+  };
+
+  // Remove a linked ticket
+  const removeLinkedTicket = (ticketId) => {
+    setLinkedTickets(linkedTickets.filter(t => t.id !== ticketId));
+  };
+
+  // Clear parent ticket
+  const clearParentTicket = () => {
+    setParentTicketId('');
+  };
+
+  // Get parent ticket details
+  const getParentTicketDetails = () => {
+    if (!parentTicketId) return null;
+    return tickets.find(t => t.id === parentTicketId);
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +126,8 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
         typeId,
         stateId,
         assignedToUserId,
+        parentTicketId,
+        linkedTickets,
         createdByUserId: currentUser?.uid,
         creationDate: new Date().toISOString(),
         lastModifiedDate: new Date().toISOString(),
@@ -74,6 +140,26 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       setLoading(false);
     }
   };
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if user clicked outside parent search dropdown
+      if (showParentSearchResults && !event.target.closest('[data-parent-search]')) {
+        setShowParentSearchResults(false);
+      }
+      
+      // Check if user clicked outside linked search dropdown
+      if (showLinkedSearchResults && !event.target.closest('[data-linked-search]')) {
+        setShowLinkedSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showParentSearchResults, showLinkedSearchResults]);
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -175,6 +261,147 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
           </div>
           <p className="mt-1 text-xs text-coffee-medium">
             Currently, tickets can only be assigned to yourself or left unassigned.
+          </p>
+        </div>
+      </div>
+
+      {/* Parent Ticket Selection */}
+      <div>
+        <label className="block text-sm font-medium text-coffee-dark mb-1">
+          Parent Ticket
+        </label>
+        <div className="space-y-2">
+          {parentTicketId ? (
+            <div className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
+              <div>
+                <span className="font-medium text-coffee-dark">
+                  {getParentTicketDetails()?.title || `Ticket #${parentTicketId}`}
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="small"
+                onClick={clearParentTicket}
+              >
+                Remove
+              </Button>
+            </div>
+          ) : (
+            <div className="relative" data-parent-search>
+              <div className="flex items-center w-full border border-coffee-cream rounded-md overflow-hidden">
+                <div className="bg-coffee-cream p-2">
+                  <FaSearch className="h-5 w-5 text-coffee-medium" />
+                </div>
+                <input
+                  type="text"
+                  value={parentSearchQuery}
+                  onChange={(e) => {
+                    setParentSearchQuery(e.target.value);
+                    setShowParentSearchResults(true);
+                  }}
+                  onFocus={() => setShowParentSearchResults(true)}
+                  className="flex-grow p-2 border-0 focus:ring-0 focus:outline-none"
+                  placeholder="Search for a ticket to set as parent..."
+                />
+              </div>
+              
+              {showParentSearchResults && parentSearchQuery && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-coffee-cream rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredParentTickets.length === 0 ? (
+                    <div className="p-3 text-coffee-medium">No tickets found</div>
+                  ) : (
+                    <ul className="divide-y divide-coffee-cream">
+                      {filteredParentTickets.map(ticket => (
+                        <li 
+                          key={ticket.id}
+                          className="p-2 hover:bg-coffee-light cursor-pointer"
+                          onClick={() => setParentTicket(ticket)}
+                        >
+                          <div className="font-medium text-coffee-dark">{ticket.title}</div>
+                          <div className="text-xs text-coffee-medium">#{ticket.id}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-coffee-medium">
+            Optionally set a parent ticket to create a hierarchy.
+          </p>
+        </div>
+      </div>
+      
+      {/* Linked Tickets */}
+      <div>
+        <label className="block text-sm font-medium text-coffee-dark mb-1">
+          Linked Tickets
+        </label>
+        <div className="space-y-2">
+          {linkedTickets.length > 0 && (
+            <div className="space-y-2 mb-2">
+              {linkedTickets.map(ticket => (
+                <div key={ticket.id} className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
+                  <div className="flex items-center">
+                    <FaLink className="text-coffee-medium mr-2" />
+                    <span className="font-medium text-coffee-dark">{ticket.title || `Ticket #${ticket.id}`}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="small"
+                    onClick={() => removeLinkedTicket(ticket.id)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="relative" data-linked-search>
+            <div className="flex items-center w-full border border-coffee-cream rounded-md overflow-hidden">
+              <div className="bg-coffee-cream p-2">
+                <FaSearch className="h-5 w-5 text-coffee-medium" />
+              </div>
+              <input
+                type="text"
+                value={linkedSearchQuery}
+                onChange={(e) => {
+                  setLinkedSearchQuery(e.target.value);
+                  setShowLinkedSearchResults(true);
+                }}
+                onFocus={() => setShowLinkedSearchResults(true)}
+                className="flex-grow p-2 border-0 focus:ring-0 focus:outline-none"
+                placeholder="Search for tickets to link..."
+              />
+            </div>
+            
+            {showLinkedSearchResults && linkedSearchQuery && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-coffee-cream rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredLinkedTickets.length === 0 ? (
+                  <div className="p-3 text-coffee-medium">No tickets found</div>
+                ) : (
+                  <ul className="divide-y divide-coffee-cream">
+                    {filteredLinkedTickets.map(ticket => (
+                      <li 
+                        key={ticket.id}
+                        className="p-2 hover:bg-coffee-light cursor-pointer"
+                        onClick={() => addLinkedTicket(ticket)}
+                      >
+                        <div className="font-medium text-coffee-dark">{ticket.title}</div>
+                        <div className="text-xs text-coffee-medium">#{ticket.id}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-coffee-medium">
+            Link related tickets to this ticket.
           </p>
         </div>
       </div>
