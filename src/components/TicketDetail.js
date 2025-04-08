@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDatabase } from '../context/DatabaseContext.js';
 import Button from './Button.js';
 import { FaEdit, FaTrash, FaClock, FaLink, FaLevelUpAlt, FaLevelDownAlt } from 'react-icons/fa/index.js';
 
 const TicketDetail = ({ ticket, onEdit, onDelete }) => {
-  const { tickets, types, states, formatUserDisplayName, getTicketChildren } = useDatabase();
+  const { tickets, types, states, getTicketChildren, getUserDisplayName } = useDatabase();
   
   if (!ticket) return null;
   
@@ -119,13 +119,13 @@ const TicketDetail = ({ ticket, onEdit, onDelete }) => {
             <div>
               <span className="block text-xs text-coffee-medium">Assigned to</span>
               <span className="block font-medium text-coffee-dark">
-                {formatUserDisplayName(ticket.assignedToUserId)}
+                {getUserDisplayName(ticket.assignedToUserId)}
               </span>
             </div>
             <div>
               <span className="block text-xs text-coffee-medium">Created by</span>
               <span className="block font-medium text-coffee-dark">
-                {formatUserDisplayName(ticket.createdByUserId)}
+                {getUserDisplayName(ticket.createdByUserId)}
               </span>
             </div>
           </div>

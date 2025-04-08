@@ -10,6 +10,7 @@ import {
   OAuthProvider
 } from 'firebase/auth';
 import { auth } from '../firebase/config.js';
+import * as dbService from '../services/databaseService.js';
 
 // Create auth context
 const AuthContext = createContext();
@@ -49,7 +50,11 @@ export function AuthProvider({ children }) {
 
   const logOut = async () => {
     try {
+      // Clear application state
+      setCurrentUser(null);
+      // Force reload the page to clear any cached data
       await signOut(auth);
+      window.location.reload();
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -95,9 +100,18 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Subscribe to auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       setLoading(false);
+      
+      // If user exists, store their data in Firestore
+      if (user) {
+        await dbService.createOrUpdateUser({
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email
+        });
+      }
     });
 
     // Cleanup subscription

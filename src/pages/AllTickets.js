@@ -6,8 +6,8 @@ import TicketForm from '../components/TicketForm.js';
 import TicketDetail from '../components/TicketDetail.js';
 import PageHeader from '../components/PageHeader.js';
 
-const AllTickets = () => {
-  const { tickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, formatUserDisplayName } = useDatabase();
+export default function AllTicketsPage() {
+  const { tickets, allTickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
   
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +34,7 @@ const AllTickets = () => {
 
   // Filter and sort tickets when dependencies change
   useEffect(() => {
-    let result = [...tickets];
+    let result = [...allTickets];
     
     // Apply search term filter
     if (searchTerm) {
@@ -80,7 +80,7 @@ const AllTickets = () => {
     }
     
     setFilteredTickets(result);
-  }, [tickets, searchTerm, filters, sortConfig]);
+  }, [allTickets, searchTerm, filters, sortConfig]);
   
   // Add this debug useEffect
   useEffect(() => {
@@ -439,7 +439,7 @@ const AllTickets = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
-                      {formatUserDisplayName(ticket.assignedToUserId)}
+                      {getUserDisplayName(ticket.assignedToUserId)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
                       {formatDate(ticket.creationDate)}
@@ -547,5 +547,3 @@ const AllTickets = () => {
     </div>
   );
 };
-
-export default AllTickets;

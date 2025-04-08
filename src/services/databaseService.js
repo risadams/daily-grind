@@ -249,3 +249,51 @@ export const getPriorityById = async (priorityId) => {
     return { success: false, error: error.message };
   }
 };
+
+// Users collection operations
+export const getAllUsers = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const users = [];
+    
+    querySnapshot.forEach((doc) => {
+      users.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return { success: true, data: users };
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getUserById = async (userId) => {
+  try {
+    const docRef = doc(db, 'users', String(userId));
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+    } else {
+      return { success: false, error: 'User not found' };
+    }
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const createOrUpdateUser = async (userData) => {
+  try {
+    const { uid, displayName, email } = userData;
+    await setDoc(doc(db, 'users', uid), {
+      displayName,
+      email,
+      lastUpdated: new Date().toISOString()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return { success: false, error: error.message };
+  }
+};

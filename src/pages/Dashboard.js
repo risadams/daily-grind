@@ -13,7 +13,7 @@ import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } fro
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, users, loading, error, createTicket, updateTicket, deleteTicket, formatUserDisplayName } = useDatabase();
+  const { tickets, types, states, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
   const navigate = useNavigate();
   
   // State for ticket modals
@@ -308,7 +308,7 @@ const Dashboard = () => {
                           {getStateName(ticket.stateId)}
                         </span>
                         <span className="mt-1 text-xs text-coffee-medium">
-                          Assigned to: {formatUserDisplayName(ticket.assignedToUserId)}
+                          Assigned to: {getUserDisplayName(ticket.assignedToUserId)}
                         </span>
                       </div>
                     </div>

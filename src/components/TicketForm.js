@@ -4,9 +4,9 @@ import { useDatabase } from '../context/DatabaseContext.js';
 import Button from './Button.js';
 import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa/index.js';
 
-const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false }) => {
+const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, priorities, formatUserDisplayName } = useDatabase();
+  const { tickets, types, states, priorities, formatUserDisplayName, users, getUserDisplayName, loadUserDisplayName } = useDatabase();
   
   // Form data state
   const [title, setTitle] = useState('');
@@ -173,6 +173,11 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showParentSearchResults, showLinkedSearchResults]);
+
+  // Preload user display names for select options
+  useEffect(() => {
+    users.forEach(user => loadUserDisplayName(user.id));
+  }, [users, loadUserDisplayName]);
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -268,8 +273,12 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
               onChange={(e) => setAssignedToUserId(e.target.value)}
               className="flex-grow p-2 border-0 focus:ring-0 focus:outline-none"
             >
-              <option value="">Unassigned</option>
-              <option value={currentUser?.uid}>Me ({currentUser?.email})</option>
+              <option value="">Select user...</option>
+              {users.map(user => (
+                <option key={user.id} value={user.id}>
+                  {getUserDisplayName(user.id)}
+                </option>
+              ))}
             </select>
           </div>
           <p className="mt-1 text-xs text-coffee-medium">

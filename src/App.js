@@ -16,6 +16,7 @@ import Profile from './pages/Profile.js';
 import AllTickets from './pages/AllTickets.js';
 import ForgotPassword from './pages/ForgotPassword.js';
 import NotFound from './pages/NotFound.js';
+import LogoutPage from './pages/LogoutPage.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -46,6 +47,7 @@ function App() {
             
             {/* Not found route */}
             <Route path="*" element={<NotFound />} />
+            <Route path="/logout" element={<LogoutPage />} />
           </Routes>
         </DatabaseProvider>
       </AuthProvider>

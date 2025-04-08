@@ -12,11 +12,14 @@ export function useDatabase() {
 export function DatabaseProvider({ children }) {
   const { currentUser } = useAuth();
   const [tickets, setTickets] = useState([]);
+  const [allTickets, setAllTickets] = useState([]); // Store all tickets, not just user's tickets
   const [types, setTypes] = useState([]);
   const [states, setStates] = useState([]);
   const [priorities, setPriorities] = useState([]);
+  const [users, setUsers] = useState([]); // Add users state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userDisplayNames, setUserDisplayNames] = useState({});
 
   // Load reference data (types, states, and priorities) when user is authenticated
   useEffect(() => {
@@ -112,6 +115,141 @@ export function DatabaseProvider({ children }) {
       loadTickets();
     }
   }, [currentUser, priorities]);
+
+  // Load all tickets for the All Tickets view
+  useEffect(() => {
+    const loadAllTickets = async () => {
+      if (!currentUser) {
+        setAllTickets([]);
+        return;
+      }
+
+      try {
+        const result = await dbService.getAllTickets();
+        if (result.success) {
+          // Ensure all tickets have a priorityId field
+          // Default to Medium priority if not set
+          const mediumPriority = priorities.find(p => p.name === 'Medium');
+          const defaultPriorityId = mediumPriority ? mediumPriority.id : 'priority-3';
+          
+          const updatedTickets = result.data.map(ticket => ({
+            ...ticket,
+            priorityId: ticket.priorityId || defaultPriorityId
+          }));
+          
+          setAllTickets(updatedTickets);
+        } else {
+          console.error('Failed to load all tickets', result.error);
+        }
+      } catch (err) {
+        console.error('Error loading all tickets:', err);
+      }
+    };
+
+    // Only load tickets if priorities are available
+    if (priorities.length > 0) {
+      loadAllTickets();
+    }
+  }, [currentUser, priorities]);
+
+  // Load users data
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (!currentUser) {
+        setUsers([]);
+        return;
+      }
+
+      try {
+        console.log("Loading users...");
+        const result = await dbService.getAllUsers();
+        if (result.success) {
+          console.log("Loaded users:", result.data);
+          
+          // Add current user if not already in the list
+          const currentUserInList = result.data.some(user => user.id === currentUser.uid);
+          
+          if (!currentUserInList) {
+            const updatedUsers = [...result.data, {
+              id: currentUser.uid,
+              displayName: currentUser.displayName,
+              email: currentUser.email
+            }];
+            setUsers(updatedUsers);
+            console.log("Added current user to users list:", updatedUsers);
+          } else {
+            setUsers(result.data);
+          }
+        } else {
+          console.error('Failed to load users', result.error);
+          
+          // At minimum, add current user to the list
+          setUsers([{
+            id: currentUser.uid,
+            displayName: currentUser.displayName,
+            email: currentUser.email
+          }]);
+        }
+      } catch (err) {
+        console.error('Error loading users:', err);
+        
+        // At minimum, add current user to the list
+        setUsers([{
+          id: currentUser.uid,
+          displayName: currentUser.displayName,
+          email: currentUser.email
+        }]);
+      }
+    };
+
+    loadUsers();
+  }, [currentUser]);
+
+  // Format user display name synchronously using cache
+  const getUserDisplayName = (userId) => {
+    if (!userId) return 'Unassigned';
+    return userDisplayNames[userId] || `User (${userId.slice(0, 6)}...)`;
+  };
+
+  // Load user display name asynchronously and cache it
+  const loadUserDisplayName = async (userId) => {
+    if (!userId || userDisplayNames[userId]) return;
+
+    const existingUser = users.find(u => u.id === userId);
+    if (existingUser) {
+      setUserDisplayNames(prev => ({
+        ...prev,
+        [userId]: existingUser.displayName || existingUser.email || `User (${userId.slice(0, 6)}...)`
+      }));
+      return;
+    }
+
+    try {
+      const result = await dbService.getUserById(userId);
+      if (result.success && result.data) {
+        setUserDisplayNames(prev => ({
+          ...prev,
+          [userId]: result.data.displayName || result.data.email || `User (${userId.slice(0, 6)}...)`
+        }));
+        setUsers(prevUsers => [...prevUsers, result.data]);
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+  };
+
+  // Preload display names when tickets change
+  useEffect(() => {
+    const userIds = new Set();
+    [...tickets, ...allTickets].forEach(ticket => {
+      if (ticket.assignedToUserId) userIds.add(ticket.assignedToUserId);
+      if (ticket.createdByUserId) userIds.add(ticket.createdByUserId);
+    });
+    
+    userIds.forEach(userId => {
+      loadUserDisplayName(userId);
+    });
+  }, [tickets, allTickets]);
 
   // Ticket operations
   const createTicket = async (ticketData) => {
@@ -300,19 +438,39 @@ export function DatabaseProvider({ children }) {
   };
 
   // Format user display name from Firebase user
-  const formatUserDisplayName = (userId) => {
+  const formatUserDisplayName = async (userId) => {
     if (!userId) return 'Unassigned';
-    if (userId === currentUser?.uid) return currentUser.displayName || currentUser.email || 'Current User';
-    // For other users, we'll show their ID until we have more user info
+
+    // Check if user exists in current users list
+    const existingUser = users.find(u => u.id === userId);
+    if (existingUser) {
+      return existingUser.displayName || existingUser.email || `User (${userId.slice(0, 6)}...)`;
+    }
+
+    // If not found, try to load the user directly
+    try {
+      const result = await dbService.getUserById(userId);
+      if (result.success && result.data) {
+        // Add to users list
+        setUsers(prevUsers => [...prevUsers, result.data]);
+        return result.data.displayName || result.data.email || `User (${userId.slice(0, 6)}...)`;
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+
+    // Fallback for users not found
     return `User (${userId.slice(0, 6)}...)`;
   };
 
   // Context value
   const value = {
     tickets,
+    allTickets,
     types,
     states,
     priorities,
+    users,
     loading,
     error,
     createTicket,
@@ -325,7 +483,9 @@ export function DatabaseProvider({ children }) {
     getPriorityById,
     getPriorityNameById,
     getPriorityColorById,
-    formatUserDisplayName
+    formatUserDisplayName,
+    getUserDisplayName,
+    loadUserDisplayName
   };
 
   return (
