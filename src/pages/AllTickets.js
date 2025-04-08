@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../context/DatabaseContext.js';
 import { FaSort, FaSortUp, FaSortDown, FaSearch, FaEdit, FaEye, FaCheckCircle, FaPlus } from 'react-icons/fa/index.js';
 import Modal from '../components/Modal.js';
-import TicketForm from '../components/TicketForm.js';
 import TicketDetail from '../components/TicketDetail.js';
+import TicketFormDialog from '../components/TicketFormDialog.js';
 import PageHeader from '../components/PageHeader.js';
 
 export default function AllTicketsPage() {
@@ -471,19 +471,11 @@ export default function AllTicketsPage() {
       </div>
 
       {/* Create Ticket Modal */}
-      <Modal
+      <TicketFormDialog
         isOpen={showTicketModal}
         onClose={() => setShowTicketModal(false)}
-        title="Create New Ticket"
-      >
-        <TicketForm
-          onSubmit={handleCreateTicket}
-          onCancel={() => setShowTicketModal(false)}
-          types={types}
-          states={states}
-          users={users}
-        />
-      </Modal>
+        onSubmit={handleCreateTicket}
+      />
 
       {/* View Ticket Modal */}
       <Modal
@@ -511,26 +503,15 @@ export default function AllTicketsPage() {
       </Modal>
 
       {/* Edit Ticket Modal */}
-      <Modal
+      <TicketFormDialog
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
           setSelectedTicket(null);
         }}
-        title="Edit Ticket"
-      >
-        <TicketForm
-          initialData={selectedTicket}
-          onSubmit={handleUpdateTicket}
-          onCancel={() => {
-            setShowEditModal(false);
-            setSelectedTicket(null);
-          }}
-          types={types}
-          states={states}
-          users={users}
-        />
-      </Modal>
+        ticket={selectedTicket}
+        onSubmit={handleUpdateTicket}
+      />
     </div>
   );
 };

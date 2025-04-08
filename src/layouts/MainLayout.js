@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
@@ -8,6 +8,11 @@ import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt } from 'react-icon
 const MainLayout = () => {
   const { currentUser, logOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
   const handleLogout = async () => {
     await logOut();
@@ -27,21 +32,30 @@ const MainLayout = () => {
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link 
                   to="/dashboard" 
-                  className="border-coffee-medium text-coffee-dark hover:text-coffee-accent inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/dashboard') 
+                    ? 'border-coffee-accent text-coffee-dark'
+                    : 'border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   <FaHome className="mr-1" />
                   Dashboard
                 </Link>
                 <Link 
                   to="/tickets" 
-                  className="border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/tickets')
+                    ? 'border-coffee-accent text-coffee-dark'
+                    : 'border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   <FaListAlt className="mr-1" />
                   All Tickets
                 </Link>
                 <Link 
                   to="/profile" 
-                  className="border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={`${isActive('/profile')
+                    ? 'border-coffee-accent text-coffee-dark'
+                    : 'border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   <FaUser className="mr-1" />
                   Profile

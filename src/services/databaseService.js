@@ -98,8 +98,10 @@ export const updateTicket = async (ticketId, ticketData) => {
     // Remove creationDate from update data to preserve original
     const { creationDate, ...updateData } = ticketData;
     
-    // Add last modified date
-    updateData.lastModifiedDate = new Date().toISOString();
+    // Add last modified date if not provided
+    if (!updateData.lastModifiedDate) {
+      updateData.lastModifiedDate = new Date().toISOString();
+    }
     
     await updateDoc(doc(db, 'tickets', ticketId), updateData);
     return { success: true, data: { id: ticketId, ...updateData } };

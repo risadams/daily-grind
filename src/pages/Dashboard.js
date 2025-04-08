@@ -7,8 +7,8 @@ import Card from '../components/Card.js';
 import Button from '../components/Button.js';
 import Logo from '../components/Logo.js';
 import Modal from '../components/Modal.js';
-import TicketForm from '../components/TicketForm.js';
 import TicketDetail from '../components/TicketDetail.js';
+import TicketFormDialog from '../components/TicketFormDialog.js';
 import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } from 'react-icons/fa/index.js';
 
 const Dashboard = () => {
@@ -321,16 +321,11 @@ const Dashboard = () => {
       )}
       
       {/* Create Ticket Modal */}
-      <Modal
+      <TicketFormDialog
         isOpen={showTicketModal}
         onClose={() => setShowTicketModal(false)}
-        title="Create New Ticket"
-      >
-        <TicketForm 
-          onSubmit={handleCreateTicket}
-          onCancel={() => setShowTicketModal(false)}
-        />
-      </Modal>
+        onSubmit={handleCreateTicket}
+      />
 
       {/* View Ticket Modal */}
       <Modal
@@ -346,18 +341,12 @@ const Dashboard = () => {
       </Modal>
 
       {/* Edit Ticket Modal */}
-      <Modal
+      <TicketFormDialog
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title="Edit Ticket"
-      >
-        <TicketForm 
-          initialData={selectedTicket}
-          isEditing={true}
-          onSubmit={handleUpdateTicket}
-          onCancel={() => setShowEditModal(false)}
-        />
-      </Modal>
+        ticket={selectedTicket}
+        onSubmit={handleUpdateTicket}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal

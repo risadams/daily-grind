@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Contexts
 import { AuthProvider } from './context/AuthContext.js';
@@ -22,9 +22,14 @@ import LogoutPage from './pages/LogoutPage.js';
 import PrivateRoute from './guards/PrivateRoute.js';
 import PublicRoute from './guards/PublicRoute.js';
 
-function App() {
+const App = () => {
   return (
-    <Router>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <AuthProvider>
         <DatabaseProvider>
           <Routes>
@@ -51,8 +56,8 @@ function App() {
           </Routes>
         </DatabaseProvider>
       </AuthProvider>
-    </Router>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

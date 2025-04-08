@@ -16,7 +16,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   const [assignedToUserId, setAssignedToUserId] = useState('');
   const [parentTicketId, setParentTicketId] = useState('');
   const [linkedTickets, setLinkedTickets] = useState([]);
-  const [priorityId, setPriorityId] = useState(''); // Changed from priority to priorityId
+  const [priorityId, setPriorityId] = useState('');
   
   // Search state - separate for parent and linked tickets
   const [parentSearchQuery, setParentSearchQuery] = useState('');
@@ -26,7 +26,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   // Set form initial values if editing
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
@@ -37,13 +37,13 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
       setAssignedToUserId(initialData.assignedToUserId || '');
       setParentTicketId(initialData.parentTicketId || '');
       setLinkedTickets(initialData.linkedTickets || []);
-      setPriorityId(initialData.priorityId || ''); // Changed from priority to priorityId
+      setPriorityId(initialData.priorityId || '');
     } else {
-      // Default for new tickets
+      // Default values for new tickets
       const openState = states.find(s => s.name === 'Open');
       if (openState) setStateId(openState.id);
       
-      // Assign to current user by default
+      // Assign to current user by default for new tickets
       setAssignedToUserId(currentUser?.uid || '');
       
       // Set Medium priority by default
@@ -51,17 +51,17 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
       if (mediumPriority) setPriorityId(mediumPriority.id);
     }
   }, [initialData, states, priorities, currentUser]);
-  
+
   // Filter tickets based on search query for parent ticket
   const filteredParentTickets = tickets.filter(ticket => 
-    ticket.id !== initialData.id && // Don't include current ticket in results
+    (!initialData || ticket.id !== initialData.id) && // Don't include current ticket in results
     (ticket.title.toLowerCase().includes(parentSearchQuery.toLowerCase()) || 
      ticket.id.toLowerCase().includes(parentSearchQuery.toLowerCase()))
   );
 
   // Filter tickets based on search query for linked tickets
   const filteredLinkedTickets = tickets.filter(ticket => 
-    ticket.id !== initialData.id && // Don't include current ticket in results
+    (!initialData || ticket.id !== initialData.id) && // Don't include current ticket in results
     !linkedTickets.some(t => t.id === ticket.id) && // Don't include already linked tickets
     (ticket.title.toLowerCase().includes(linkedSearchQuery.toLowerCase()) || 
      ticket.id.toLowerCase().includes(linkedSearchQuery.toLowerCase()))
@@ -140,14 +140,15 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         assignedToUserId,
         parentTicketId,
         linkedTickets,
-        priorityId, // Changed from priority to priorityId
-        createdByUserId: currentUser?.uid,
+        priorityId,
         lastModifiedDate: new Date().toISOString(),
+        lastModifiedByUserId: currentUser?.uid, // Track who made the last modification
       };
 
-      // Only set creation date for new tickets
+      // Only set creation-related fields for new tickets
       if (!isEditing) {
         ticketData.creationDate = new Date().toISOString();
+        ticketData.createdByUserId = currentUser?.uid;
       }
       
       await onSubmit(ticketData);
@@ -157,7 +158,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
       setLoading(false);
     }
   };
-  
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
