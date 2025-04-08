@@ -6,7 +6,7 @@ import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa/index.
 
 const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false }) => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, formatUserDisplayName } = useDatabase();
+  const { tickets, types, states, priorities, formatUserDisplayName } = useDatabase();
   
   // Form data state
   const [title, setTitle] = useState('');
@@ -16,6 +16,7 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
   const [assignedToUserId, setAssignedToUserId] = useState('');
   const [parentTicketId, setParentTicketId] = useState('');
   const [linkedTickets, setLinkedTickets] = useState([]);
+  const [priorityId, setPriorityId] = useState(''); // Changed from priority to priorityId
   
   // Search state - separate for parent and linked tickets
   const [parentSearchQuery, setParentSearchQuery] = useState('');
@@ -36,6 +37,7 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       setAssignedToUserId(initialData.assignedToUserId || '');
       setParentTicketId(initialData.parentTicketId || '');
       setLinkedTickets(initialData.linkedTickets || []);
+      setPriorityId(initialData.priorityId || ''); // Changed from priority to priorityId
     } else {
       // Default for new tickets
       const openState = states.find(s => s.name === 'Open');
@@ -43,8 +45,12 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       
       // Assign to current user by default
       setAssignedToUserId(currentUser?.uid || '');
+      
+      // Set Medium priority by default
+      const mediumPriority = priorities.find(p => p.name === 'Medium');
+      if (mediumPriority) setPriorityId(mediumPriority.id);
     }
-  }, [initialData, states, currentUser]);
+  }, [initialData, states, priorities, currentUser]);
   
   // Filter tickets based on search query for parent ticket
   const filteredParentTickets = tickets.filter(ticket => 
@@ -116,6 +122,12 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
       return;
     }
     
+    // Make sure we have a priority
+    if (!priorityId && priorities.length > 0) {
+      const mediumPriority = priorities.find(p => p.name === 'Medium');
+      setPriorityId(mediumPriority ? mediumPriority.id : priorities[0].id);
+    }
+    
     setLoading(true);
     setError('');
     
@@ -128,6 +140,7 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
         assignedToUserId,
         parentTicketId,
         linkedTickets,
+        priorityId, // Changed from priority to priorityId
         createdByUserId: currentUser?.uid,
         creationDate: new Date().toISOString(),
         lastModifiedDate: new Date().toISOString(),
@@ -263,6 +276,26 @@ const TicketForm = ({ onSubmit, onCancel, initialData = {}, isEditing = false })
             Currently, tickets can only be assigned to yourself or left unassigned.
           </p>
         </div>
+      </div>
+
+      {/* Priority Field */}
+      <div>
+        <label htmlFor="priority" className="block text-sm font-medium text-coffee-dark mb-1">
+          Priority
+        </label>
+        <select
+          id="priority"
+          value={priorityId}
+          onChange={(e) => setPriorityId(e.target.value)}
+          className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
+        >
+          <option value="">Select a priority</option>
+          {priorities.map(priority => (
+            <option key={priority.id} value={priority.id}>
+              {priority.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Parent Ticket Selection */}

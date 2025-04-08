@@ -196,3 +196,56 @@ export const deleteTicketLink = async (linkId) => {
     return { success: false, error: error.message };
   }
 };
+
+// Get all priority levels
+export const getAllPriorities = async () => {
+  try {
+    const q = query(collection(db, 'priorities'), orderBy('order'));
+    const querySnapshot = await getDocs(q);
+    const priorities = [];
+    
+    querySnapshot.forEach((doc) => {
+      priorities.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return { success: true, data: priorities };
+  } catch (error) {
+    console.error('Error fetching priorities:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Create a new priority level
+export const createPriority = async (priorityData) => {
+  try {
+    // If we have a specific ID to use
+    if (priorityData.id) {
+      await setDoc(doc(db, 'priorities', String(priorityData.id)), priorityData);
+      return { success: true, data: priorityData };
+    } else {
+      // Let Firebase generate ID
+      const docRef = await addDoc(collection(db, 'priorities'), priorityData);
+      return { success: true, data: { id: docRef.id, ...priorityData } };
+    }
+  } catch (error) {
+    console.error('Error creating priority:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get a priority by ID
+export const getPriorityById = async (priorityId) => {
+  try {
+    const docRef = doc(db, 'priorities', String(priorityId));
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+    } else {
+      return { success: false, error: 'Priority not found' };
+    }
+  } catch (error) {
+    console.error('Error fetching priority:', error);
+    return { success: false, error: error.message };
+  }
+};

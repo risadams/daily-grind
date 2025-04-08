@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext.js';
 import * as dbService from '../services/databaseService.js';
+import defaultPriorities from '../data/defaultPriorities.js';
 
 // Create database context
 const DatabaseContext = createContext();
@@ -14,10 +15,11 @@ export function DatabaseProvider({ children }) {
   const [tickets, setTickets] = useState([]);
   const [types, setTypes] = useState([]);
   const [states, setStates] = useState([]);
+  const [priorities, setPriorities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load reference data (types and states) when user is authenticated
+  // Load reference data (types, states, and priorities) when user is authenticated
   useEffect(() => {
     // Only load data if user is authenticated
     if (!currentUser) {
@@ -44,6 +46,31 @@ export function DatabaseProvider({ children }) {
           console.error('Failed to load ticket states', statesResult.error);
           // Only log the error
         }
+        
+        // Fetch priorities
+        const prioritiesResult = await dbService.getAllPriorities();
+        if (prioritiesResult.success) {
+          setPriorities(prioritiesResult.data);
+        } else {
+          console.error('Failed to load priorities', prioritiesResult.error);
+          
+          // If no priorities exist, create them from defaults
+          if (prioritiesResult.error === 'No priorities found') {
+            const createdPriorities = [];
+            
+            for (const priority of defaultPriorities) {
+              const result = await dbService.createPriority(priority);
+              if (result.success) {
+                createdPriorities.push(result.data);
+              }
+            }
+            
+            if (createdPriorities.length > 0) {
+              console.log('Created default priorities');
+              setPriorities(createdPriorities);
+            }
+          }
+        }
       } catch (err) {
         console.error('Error loading reference data:', err);
         // Only set error if both types and states failed to load
@@ -69,7 +96,17 @@ export function DatabaseProvider({ children }) {
       try {
         const result = await dbService.getTicketsByUser(currentUser.uid);
         if (result.success) {
-          setTickets(result.data);
+          // Ensure all tickets have a priorityId field
+          // Default to Medium priority if not set
+          const mediumPriority = priorities.find(p => p.name === 'Medium');
+          const defaultPriorityId = mediumPriority ? mediumPriority.id : 'priority-3';
+          
+          const updatedTickets = result.data.map(ticket => ({
+            ...ticket,
+            priorityId: ticket.priorityId || defaultPriorityId
+          }));
+          
+          setTickets(updatedTickets);
         } else {
           console.error('Failed to load tickets', result.error);
           // Only set error if it's a non-permission issue
@@ -88,14 +125,23 @@ export function DatabaseProvider({ children }) {
       }
     };
 
-    loadTickets();
-  }, [currentUser]);
+    // Only load tickets if priorities are available
+    if (priorities.length > 0) {
+      loadTickets();
+    }
+  }, [currentUser, priorities]);
 
   // Ticket operations
   const createTicket = async (ticketData) => {
     if (!currentUser) return { success: false, error: 'User not authenticated' };
     
     try {
+      // Set medium priority as default if not provided
+      if (!ticketData.priorityId) {
+        const mediumPriority = priorities.find(p => p.name === 'Medium');
+        ticketData.priorityId = mediumPriority ? mediumPriority.id : 'priority-3';
+      }
+
       // Add user info to ticket data
       const ticketWithUser = {
         ...ticketData,
@@ -143,6 +189,12 @@ export function DatabaseProvider({ children }) {
     if (!currentUser) return { success: false, error: 'User not authenticated' };
     
     try {
+      // Set medium priority as default if not provided
+      if (!ticketData.priorityId) {
+        const mediumPriority = priorities.find(p => p.name === 'Medium');
+        ticketData.priorityId = mediumPriority ? mediumPriority.id : 'priority-3';
+      }
+
       // Extract linked tickets from the data
       const linkedTickets = ticketData.linkedTickets || [];
       const ticketDataForUpdate = { ...ticketData };
@@ -247,6 +299,23 @@ export function DatabaseProvider({ children }) {
   const getStateById = (stateId) => {
     return states.find(state => state.id === stateId) || null;
   };
+  
+  // Get a priority by ID
+  const getPriorityById = (priorityId) => {
+    return priorities.find(priority => priority.id === priorityId) || null;
+  };
+  
+  // Get priority name by ID
+  const getPriorityNameById = (priorityId) => {
+    const priority = priorities.find(p => p.id === priorityId);
+    return priority ? priority.name : 'Medium'; // Default to Medium if not found
+  };
+  
+  // Get priority color by ID
+  const getPriorityColorById = (priorityId) => {
+    const priority = priorities.find(p => p.id === priorityId);
+    return priority ? priority.color : 'yellow'; // Default to yellow if not found
+  };
 
   // Format user display name from Firebase user
   const formatUserDisplayName = (userId) => {
@@ -261,6 +330,7 @@ export function DatabaseProvider({ children }) {
     tickets,
     types,
     states,
+    priorities,
     loading,
     error,
     createTicket,
@@ -270,6 +340,9 @@ export function DatabaseProvider({ children }) {
     getLinkedTickets,
     getTypeById,
     getStateById,
+    getPriorityById,
+    getPriorityNameById,
+    getPriorityColorById,
     formatUserDisplayName
   };
 

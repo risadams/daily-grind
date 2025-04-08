@@ -7,7 +7,7 @@ import TicketDetail from '../components/TicketDetail.js';
 import PageHeader from '../components/PageHeader.js';
 
 const AllTickets = () => {
-  const { tickets, types, states, users, loading, error, createTicket, updateTicket, deleteTicket, formatUserDisplayName } = useDatabase();
+  const { tickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, formatUserDisplayName } = useDatabase();
   
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,7 +55,7 @@ const AllTickets = () => {
     }
     
     if (filters.priority) {
-      result = result.filter(ticket => ticket.priority === filters.priority);
+      result = result.filter(ticket => ticket.priorityId === filters.priority);
     }
     
     // Apply sorting
@@ -181,6 +181,39 @@ const AllTickets = () => {
     return stateObj ? stateObj.name : 'Unknown';
   };
   
+  // Helper function to get priority name from priorityId
+  const getPriorityName = (priorityId) => {
+    // Check if priorities is loaded and priorityId is valid
+    if (!priorityId || !priorities || priorities.length === 0) return 'Medium';
+    
+    // Convert priorityId to string for comparison if needed
+    const searchId = typeof priorityId === 'string' ? priorityId : String(priorityId);
+    
+    // Find the priority by ID using string comparison to be safe
+    const priorityObj = priorities.find(priority => String(priority.id) === searchId);
+    return priorityObj ? priorityObj.name : 'Medium';
+  };
+  
+  // Helper function to get priority color based on priority name
+  const getPriorityColorClass = (priorityId) => {
+    const name = getPriorityName(priorityId);
+    
+    switch(name) {
+      case 'Highest':
+        return 'bg-red-100 text-red-800';
+      case 'High':
+        return 'bg-orange-100 text-orange-800';
+      case 'Medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Low':
+        return 'bg-blue-100 text-blue-800';
+      case 'Lowest':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800'; // Medium as default
+    }
+  };
+  
   // Format date to handle edge cases
   const formatDate = (dateString) => {
     if (!dateString) return 'No Date';
@@ -278,10 +311,9 @@ const AllTickets = () => {
               style={{ backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235b5b5b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")" }}
             >
               <option value="">All Priorities</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
+              {priorities && priorities.map(priority => (
+                <option key={priority.id} value={priority.id}>{priority.name}</option>
+              ))}
             </select>
             
             <button
@@ -355,9 +387,9 @@ const AllTickets = () => {
                   <th 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('priority')}
+                    onClick={() => handleSort('priorityId')}
                   >
-                    Priority {getSortIcon('priority')}
+                    Priority {getSortIcon('priorityId')}
                   </th>
                   <th 
                     scope="col" 
@@ -401,12 +433,9 @@ const AllTickets = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${ticket.priority === 'Critical' ? 'bg-red-100 text-red-800' : 
-                        ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' : 
-                        ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-green-100 text-green-800'}`}
+                        ${getPriorityColorClass(ticket.priorityId)}`}
                       >
-                        {ticket.priority || 'Normal'}
+                        {getPriorityName(ticket.priorityId)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">

@@ -30,6 +30,24 @@ const TicketDetail = ({ ticket, onEdit, onDelete }) => {
     return tickets.find(t => t.id === id);
   };
 
+  // Get priority badge color class
+  const getPriorityColorClass = (priority) => {
+    switch(priority) {
+      case 'Highest':
+        return 'bg-red-100 text-red-800';
+      case 'High':
+        return 'bg-orange-100 text-orange-800';
+      case 'Medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Low':
+        return 'bg-blue-100 text-blue-800';
+      case 'Lowest':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800'; // Medium (default)
+    }
+  };
+
   const parentTicket = getParentTicket();
   const linkedTickets = ticket.linkedTickets || [];
   const childTickets = getTicketChildren(ticket.id);
@@ -85,6 +103,12 @@ const TicketDetail = ({ ticket, onEdit, onDelete }) => {
             <div>
               <span className="block text-xs text-coffee-medium">Last Updated</span>
               <span className="block font-medium text-coffee-dark">{formatDate(ticket.lastModifiedDate)}</span>
+            </div>
+            <div>
+              <span className="block text-xs text-coffee-medium">Priority</span>
+              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColorClass(ticket.priority)}`}>
+                {ticket.priority || 'Medium'}
+              </span>
             </div>
           </div>
         </div>
