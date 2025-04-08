@@ -142,9 +142,13 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         linkedTickets,
         priorityId, // Changed from priority to priorityId
         createdByUserId: currentUser?.uid,
-        creationDate: new Date().toISOString(),
         lastModifiedDate: new Date().toISOString(),
       };
+
+      // Only set creation date for new tickets
+      if (!isEditing) {
+        ticketData.creationDate = new Date().toISOString();
+      }
       
       await onSubmit(ticketData);
     } catch (err) {

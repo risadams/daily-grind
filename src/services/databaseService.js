@@ -95,9 +95,14 @@ export const createTicket = async (ticketData) => {
 
 export const updateTicket = async (ticketId, ticketData) => {
   try {
-    const ticketRef = doc(db, 'tickets', String(ticketId));
-    await updateDoc(ticketRef, ticketData);
-    return { success: true, data: { id: ticketId, ...ticketData } };
+    // Remove creationDate from update data to preserve original
+    const { creationDate, ...updateData } = ticketData;
+    
+    // Add last modified date
+    updateData.lastModifiedDate = new Date().toISOString();
+    
+    await updateDoc(doc(db, 'tickets', ticketId), updateData);
+    return { success: true, data: { id: ticketId, ...updateData } };
   } catch (error) {
     console.error('Error updating ticket:', error);
     return { success: false, error: error.message };
