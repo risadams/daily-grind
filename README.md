@@ -1,4 +1,4 @@
-# DailyGrind ☕
+# Daily Grind ☕
 
 > *Brewing better tickets, one sprint at a time*
 
@@ -6,7 +6,7 @@ DailyGrind is an open-source ticket tracking system designed specifically for Sc
 
 ![DailyGrind Banner](assets/dailygrind-banner.png)
 
-## ✨ Features
+## ✨ Features (planned)
 
 - **Backlog Brewing** - Intuitive product backlog management with drag-and-drop prioritization
 - **Sprint Espresso** - Streamlined sprint planning and execution
@@ -21,15 +21,18 @@ DailyGrind is an open-source ticket tracking system designed specifically for Sc
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v14+)
-- MongoDB (v4.4+)
-- npm or yarn
+
+- Node.js (>=14.0.0)
+- npm or yarn package manager
+- Firebase account and project
+- Firebase CLI (`npm install -g firebase-tools`)
+- Valid Firebase configuration (see FIREBASE-SETUP.md for details)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dailygrind.git
+git clone https://github.com/risadams/dailygrind.git
 
 # Navigate to project directory
 cd dailygrind
@@ -42,4 +45,4 @@ cp .env.example .env
 # Edit .env with your configuration
 
 # Start development server
-npm run dev
+npm start
