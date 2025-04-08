@@ -9,7 +9,7 @@ import {
   GithubAuthProvider,
   OAuthProvider
 } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth } from '../firebase/config.js';
 
 // Create auth context
 const AuthContext = createContext();

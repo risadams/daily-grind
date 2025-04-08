@@ -1,6 +1,9 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.js';
+import Logo from '../components/Logo.js';
+import Button from '../components/Button.js';
+import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome } from 'react-icons/fa/index.js';
 
 const MainLayout = () => {
   const { currentUser, logOut } = useAuth();
@@ -12,20 +15,28 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-coffee-light">
       {/* Navigation */}
       <nav className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-indigo-600">Daily Grind</h1>
+                <Logo />
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link to="/dashboard" className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                <Link 
+                  to="/dashboard" 
+                  className="border-coffee-medium text-coffee-dark hover:text-coffee-accent inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  <FaHome className="mr-1" />
                   Dashboard
                 </Link>
-                <Link to="/profile" className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                <Link 
+                  to="/profile" 
+                  className="border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  <FaUser className="mr-1" />
                   Profile
                 </Link>
               </div>
@@ -33,15 +44,17 @@ const MainLayout = () => {
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
-                  <div className="text-sm font-medium text-gray-700">
+                  <div className="text-sm font-medium text-coffee-dark">
                     {currentUser?.email}
                   </div>
-                  <button
+                  <Button 
                     onClick={handleLogout}
-                    className="bg-indigo-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    variant="secondary"
+                    size="small"
+                    icon={<FaSignOutAlt />}
                   >
                     Sign out
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -55,6 +68,20 @@ const MainLayout = () => {
           <Outlet />
         </div>
       </div>
+      
+      {/* Footer */}
+      <footer className="bg-coffee-espresso text-white py-4 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center">
+            <div className="mb-4 sm:mb-0">
+              <Logo />
+            </div>
+            <div className="text-coffee-cream text-sm">
+              &copy; {new Date().getFullYear()} Daily Grind. Start your day with a fresh ticket.
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 // Authentication service for handling user auth operations
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, OAuthProvider } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth } from '../firebase/config.js';
 
 // Initialize providers
 const googleProvider = new GoogleAuthProvider();
