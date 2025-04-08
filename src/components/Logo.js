@@ -1,13 +1,14 @@
 import React from 'react';
+import { FaCoffee } from 'react-icons/fa';
 
 const Logo = ({ size = 'normal' }) => {
   // Determine size class based on prop
-  const sizeClass = size === 'small' 
-    ? 'h-8 w-8' 
-    : size === 'large' 
-      ? 'h-16 w-16' 
+  const sizeClass = size === 'small'
+    ? 'h-8 w-8'
+    : size === 'large'
+      ? 'h-16 w-16'
       : 'h-10 w-10';
-  
+
   return (
     <div className="flex items-center">
       <div className={`relative ${sizeClass} mr-2`}>
@@ -15,6 +16,10 @@ const Logo = ({ size = 'normal' }) => {
         <div className="absolute inset-0 bg-coffee-dark rounded-lg transform -rotate-6" aria-hidden="true"></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-3/4 h-3/4 bg-coffee-cream rounded-md flex items-center justify-center">
+            {/* FontAwesome coffee-cup icon */}
+            <FaCoffee className="h-full w-full p-1 text-coffee-dark" />
+
+            {/* Steam effect */}
             <div className="absolute top-0 -mt-1 left-1/4 w-1/4 h-1 bg-coffee-light rounded animate-steam opacity-60"></div>
             <div className="absolute top-0 -mt-2 left-1/2 w-1/4 h-1 bg-coffee-light rounded animate-steam opacity-80" style={{ animationDelay: '0.5s' }}></div>
           </div>
