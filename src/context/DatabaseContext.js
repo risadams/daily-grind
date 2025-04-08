@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext.js';
 import * as dbService from '../services/databaseService.js';
-import defaultPriorities from '../data/defaultPriorities.js';
 
 // Create database context
 const DatabaseContext = createContext();
@@ -53,23 +52,6 @@ export function DatabaseProvider({ children }) {
           setPriorities(prioritiesResult.data);
         } else {
           console.error('Failed to load priorities', prioritiesResult.error);
-          
-          // If no priorities exist, create them from defaults
-          if (prioritiesResult.error === 'No priorities found') {
-            const createdPriorities = [];
-            
-            for (const priority of defaultPriorities) {
-              const result = await dbService.createPriority(priority);
-              if (result.success) {
-                createdPriorities.push(result.data);
-              }
-            }
-            
-            if (createdPriorities.length > 0) {
-              console.log('Created default priorities');
-              setPriorities(createdPriorities);
-            }
-          }
         }
       } catch (err) {
         console.error('Error loading reference data:', err);
