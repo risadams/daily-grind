@@ -3,7 +3,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
-import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome } from 'react-icons/fa/index.js';
+import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt } from 'react-icons/fa/index.js';
 
 const MainLayout = () => {
   const { currentUser, logOut } = useAuth();
@@ -31,6 +31,13 @@ const MainLayout = () => {
                 >
                   <FaHome className="mr-1" />
                   Dashboard
+                </Link>
+                <Link 
+                  to="/tickets" 
+                  className="border-transparent text-coffee-medium hover:text-coffee-dark hover:border-coffee-cream inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  <FaListAlt className="mr-1" />
+                  All Tickets
                 </Link>
                 <Link 
                   to="/profile" 
