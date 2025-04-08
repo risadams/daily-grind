@@ -146,13 +146,19 @@ export function DatabaseProvider({ children }) {
     if (!currentUser) return { success: false, error: 'User not authenticated' };
     
     try {
-      const result = await dbService.updateTicket(ticketId, ticketData);
+      // Add last modified date
+      const updatedTicketData = {
+        ...ticketData,
+        lastModifiedDate: new Date().toISOString()
+      };
+      
+      const result = await dbService.updateTicket(ticketId, updatedTicketData);
       
       if (result.success) {
         // Update local state
         setTickets(prevTickets => 
           prevTickets.map(ticket => 
-            ticket.id === ticketId ? { ...ticket, ...ticketData } : ticket
+            ticket.id === ticketId ? { ...ticket, ...updatedTicketData } : ticket
           )
         );
       }

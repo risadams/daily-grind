@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
 import { useDatabase } from '../context/DatabaseContext.js';
@@ -6,12 +6,23 @@ import { logout } from '../services/authService.js';
 import Card from '../components/Card.js';
 import Button from '../components/Button.js';
 import Logo from '../components/Logo.js';
-import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle } from 'react-icons/fa/index.js';
+import Modal from '../components/Modal.js';
+import TicketForm from '../components/TicketForm.js';
+import TicketDetail from '../components/TicketDetail.js';
+import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye } from 'react-icons/fa/index.js';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, users, loading, error } = useDatabase();
+  const { tickets, types, states, users, loading, error, createTicket, updateTicket, deleteTicket } = useDatabase();
   const navigate = useNavigate();
+  
+  // State for ticket modals
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketActionSuccess, setTicketActionSuccess] = useState({ show: false, message: '' });
 
   // Helper functions for displaying ticket data
   const getTypeName = (typeId) => {
@@ -38,8 +49,111 @@ const Dashboard = () => {
     return <FaExclamationTriangle className="text-coffee-accent" />;
   };
 
+  // Handle viewing a ticket
+  const handleViewTicket = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowViewModal(true);
+  };
+
+  // Handle editing a ticket
+  const handleEditTicket = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowViewModal(false);
+    setShowEditModal(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = (ticketId) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    setSelectedTicket(ticket);
+    setShowViewModal(false);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle ticket creation
+  const handleCreateTicket = async (ticketData) => {
+    try {
+      const result = await createTicket(ticketData);
+      
+      if (result.success) {
+        showSuccessMessage('Ticket created successfully!');
+        setShowTicketModal(false);
+        return result;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      throw error;
+    }
+  };
+
+  // Handle ticket update
+  const handleUpdateTicket = async (ticketData) => {
+    try {
+      if (!selectedTicket) throw new Error('No ticket selected for update');
+      
+      const result = await updateTicket(selectedTicket.id, ticketData);
+      
+      if (result.success) {
+        showSuccessMessage('Ticket updated successfully!');
+        setShowEditModal(false);
+        return result;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error updating ticket:', error);
+      setTicketActionSuccess({ show: true, message: 'Failed to update ticket. Please try again.' });
+      setTimeout(() => {
+        setTicketActionSuccess({ show: false, message: '' });
+      }, 3000);
+      throw error;
+    }
+  };
+
+  // Handle ticket deletion
+  const handleDeleteTicket = async () => {
+    try {
+      if (!selectedTicket) throw new Error('No ticket selected for deletion');
+      
+      const result = await deleteTicket(selectedTicket.id);
+      
+      if (result.success) {
+        showSuccessMessage('Ticket deleted successfully!');
+        setShowDeleteConfirm(false);
+        setSelectedTicket(null);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      setTicketActionSuccess({ show: true, message: 'Failed to delete ticket. Please try again.' });
+      setTimeout(() => {
+        setTicketActionSuccess({ show: false, message: '' });
+      }, 3000);
+    }
+  };
+
+  // Show success message
+  const showSuccessMessage = (message) => {
+    setTicketActionSuccess({ show: true, message });
+    
+    // Hide message after 3 seconds
+    setTimeout(() => {
+      setTicketActionSuccess({ show: false, message: '' });
+    }, 3000);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Success notification */}
+      {ticketActionSuccess.show && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg relative">
+          <span className="block sm:inline">{ticketActionSuccess.message}</span>
+        </div>
+      )}
+
       {/* Welcome Card */}
       <Card 
         variant="highlighted"
@@ -109,6 +223,7 @@ const Dashboard = () => {
               variant="primary" 
               size="small"
               icon={<FaPlus />}
+              onClick={() => setShowTicketModal(true)}
             >
               Add Ticket
             </Button>
@@ -143,6 +258,7 @@ const Dashboard = () => {
                 <Button 
                   variant="primary"
                   icon={<FaPlus />}
+                  onClick={() => setShowTicketModal(true)}
                 >
                   Create First Ticket
                 </Button>
@@ -171,6 +287,16 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="ml-2 flex flex-col items-end">
+                        <div className="flex space-x-2 mb-2">
+                          <Button
+                            variant="outline"
+                            size="small"
+                            icon={<FaEye />}
+                            onClick={() => handleViewTicket(ticket)}
+                          >
+                            View
+                          </Button>
+                        </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           getStateName(ticket.stateId) === 'Closed' ? 'bg-green-100 text-green-800' : 
                           getStateName(ticket.stateId) === 'InProgress' ? 'bg-yellow-100 text-yellow-800' : 
@@ -190,6 +316,76 @@ const Dashboard = () => {
           )}
         </Card>
       )}
+      
+      {/* Create Ticket Modal */}
+      <Modal
+        isOpen={showTicketModal}
+        onClose={() => setShowTicketModal(false)}
+        title="Create New Ticket"
+      >
+        <TicketForm 
+          onSubmit={handleCreateTicket}
+          onCancel={() => setShowTicketModal(false)}
+        />
+      </Modal>
+
+      {/* View Ticket Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        title="Ticket Details"
+      >
+        <TicketDetail 
+          ticket={selectedTicket}
+          onEdit={handleEditTicket}
+          onDelete={handleDeleteConfirm}
+        />
+      </Modal>
+
+      {/* Edit Ticket Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Ticket"
+      >
+        <TicketForm 
+          initialData={selectedTicket}
+          isEditing={true}
+          onSubmit={handleUpdateTicket}
+          onCancel={() => setShowEditModal(false)}
+        />
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Confirm Deletion"
+        size="small"
+      >
+        <div className="space-y-4">
+          <p className="text-coffee-dark">
+            Are you sure you want to delete the ticket "{selectedTicket?.title}"?
+          </p>
+          <p className="text-sm text-coffee-medium">
+            This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteTicket}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
