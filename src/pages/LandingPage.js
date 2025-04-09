@@ -95,7 +95,7 @@ const LandingPage = () => {
                       alt="Daily Grind dashboard preview"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = 'https://via.placeholder.com/600x400?text=Daily+Grind+Dashboard';
+                        e.target.src = '/images/feature-placeholder.svg';
                       }}
                     />
                     <div className="absolute inset-0 bg-coffee-espresso mix-blend-multiply opacity-10"></div>
