@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useDatabase } from '../context/DatabaseContext.js';
 import PageHeader from '../components/PageHeader.js';
@@ -7,194 +7,193 @@ import TicketCard from '../components/TicketCard.js';
 export default function BacklogPage() {
   const { allTickets: tickets, states, updateTicket, loading } = useDatabase();
   
-  // Simplify by directly creating the board structure
-  const [board, setBoard] = useState({
-    columns: {
-      'backlog': {
-        id: 'backlog',
-        title: 'Backlog',
+  // Define column structure with state mappings
+  const [columns, setColumns] = useState({});
+  const [columnOrder, setColumnOrder] = useState([]);
+  const [stateToColumnMap, setStateToColumnMap] = useState({});
+  const [columnToStateMap, setColumnToStateMap] = useState({});
+  
+  // Initialize board structure based on states from Firebase
+  useEffect(() => {
+    if (states && states.length > 0) {
+      // Create columns based on states from database
+      const newColumns = {};
+      const newColumnOrder = [];
+      const newStateToColumnMap = {};
+      const newColumnToStateMap = {};
+      
+      // Create standard columns based on common ticket management states
+      const standardColumns = [
+        { id: 'backlog', title: 'Backlog', stateNames: ['backlog'] },
+        { id: 'todo', title: 'To Do', stateNames: ['todo', 'open', 'new'] },
+        { id: 'inprogress', title: 'In Progress', stateNames: ['progress', 'in progress', 'working', 'started'] },
+        { id: 'done', title: 'Done', stateNames: ['done', 'closed', 'completed', 'finished'] },
+        { id: 'wontfix', title: "Won't Fix", stateNames: ['wont fix', "won't fix", 'wontfix'] },
+        { id: 'duplicate', title: 'Duplicate', stateNames: ['duplicate'] }
+      ];
+      
+      // Initialize standard columns
+      standardColumns.forEach(column => {
+        newColumns[column.id] = {
+          id: column.id,
+          title: column.title,
+          tickets: [],
+          stateIds: []
+        };
+        newColumnOrder.push(column.id);
+      });
+      
+      // Map state IDs to columns
+      states.forEach(state => {
+        const stateName = state.name.toLowerCase();
+        let mapped = false;
+        
+        // Try to map to a standard column
+        for (const column of standardColumns) {
+          if (column.stateNames.some(name => stateName.includes(name))) {
+            newColumns[column.id].stateIds.push(state.id);
+            newStateToColumnMap[state.id] = column.id;
+            mapped = true;
+            break;
+          }
+        }
+        
+        // If the state doesn't map to any standard column, add it to backlog (as default)
+        if (!mapped) {
+          newColumns.backlog.stateIds.push(state.id);
+          newStateToColumnMap[state.id] = 'backlog';
+        }
+      });
+      
+      // Create reverse mapping from column ID to state IDs
+      Object.keys(newColumns).forEach(columnId => {
+        const stateIds = newColumns[columnId].stateIds;
+        if (stateIds.length > 0) {
+          // Use the first state ID as the primary one for this column
+          newColumnToStateMap[columnId] = stateIds[0];
+        }
+      });
+      
+      // Update state
+      setColumns(newColumns);
+      setColumnOrder(newColumnOrder);
+      setStateToColumnMap(newStateToColumnMap);
+      setColumnToStateMap(newColumnToStateMap);
+    }
+  }, [states]);
+  
+  // Organize tickets into columns whenever tickets or state mappings change
+  useEffect(() => {
+    if (!loading && tickets && tickets.length > 0 && Object.keys(stateToColumnMap).length > 0) {
+      organizeTicketsIntoColumns();
+    }
+  }, [tickets, stateToColumnMap, loading]);
+  
+  // Function to organize tickets into the appropriate columns
+  const organizeTicketsIntoColumns = () => {
+    // Clone current columns
+    const newColumns = { ...columns };
+    
+    // Reset tickets for all columns
+    Object.keys(newColumns).forEach(columnId => {
+      newColumns[columnId] = {
+        ...newColumns[columnId],
         tickets: []
-      },
-      'todo': {
-        id: 'todo',
-        title: 'To Do',
-        tickets: []
-      },
-      'inprogress': {
-        id: 'inprogress',
-        title: 'In Progress',
-        tickets: []
-      },
-      'done': {
-        id: 'done',
-        title: 'Done',
-        tickets: []
-      },
-      'wontfix': {
-        id: 'wontfix',
-        title: "Won't Fix",
-        tickets: []
-      },
-      'duplicate': {
-        id: 'duplicate',
-        title: 'Duplicate',
-        tickets: []
-      }
-    },
-    columnOrder: ['backlog', 'todo', 'inprogress', 'done', 'wontfix', 'duplicate']
-  });
-
-  // Organize tickets into columns - we'll call this when the component renders
-  const organizeTickets = () => {
-    // Map for quick state name lookup
-    const stateNameMap = {};
-    states.forEach(state => {
-      stateNameMap[state.id] = state.name.toLowerCase().replace(/\s+/g, '');
+      };
     });
     
-    console.log('State names:', stateNameMap);
-    
-    // Clone current board state
-    const newBoard = JSON.parse(JSON.stringify(board));
-    
-    // Clear existing tickets
-    Object.keys(newBoard.columns).forEach(columnId => {
-      newBoard.columns[columnId].tickets = [];
-    });
-    
-    // Add tickets to appropriate columns
+    // Add tickets to appropriate columns based on their state
     tickets.forEach(ticket => {
-      const stateName = stateNameMap[ticket.stateId] || '';
-      const ticketWithDragId = {
+      const ticketWithStringId = {
         ...ticket,
-        id: String(ticket.id) // Ensure ID is a string
+        id: String(ticket.id) // Ensure ID is a string for drag and drop
       };
       
-      if (stateName.includes('backlog')) {
-        newBoard.columns.backlog.tickets.push(ticketWithDragId);
-      } else if (stateName.includes('todo') || stateName.includes('open')) {
-        newBoard.columns.todo.tickets.push(ticketWithDragId);
-      } else if (stateName.includes('progress')) {
-        newBoard.columns.inprogress.tickets.push(ticketWithDragId);
-      } else if (stateName.includes('done') || stateName.includes('closed')) {
-        newBoard.columns.done.tickets.push(ticketWithDragId);
-      } else if (stateName.includes('wont') || stateName.includes('won\'t')) {
-        newBoard.columns.wontfix.tickets.push(ticketWithDragId);
-      } else if (stateName.includes('duplicate')) {
-        newBoard.columns.duplicate.tickets.push(ticketWithDragId);
+      // Find the column for this ticket's state
+      const columnId = stateToColumnMap[ticket.stateId];
+      
+      if (columnId && newColumns[columnId]) {
+        // Add ticket to the appropriate column
+        newColumns[columnId].tickets.push(ticketWithStringId);
       } else {
-        // Default to backlog
-        newBoard.columns.backlog.tickets.push(ticketWithDragId);
+        // If no matching column found, add to backlog as default
+        newColumns.backlog.tickets.push(ticketWithStringId);
       }
     });
     
-    // Log the distribution
-    Object.keys(newBoard.columns).forEach(columnId => {
-      console.log(`${newBoard.columns[columnId].title}: ${newBoard.columns[columnId].tickets.length} tickets`);
-    });
-    
-    return newBoard;
+    // Update the columns state
+    setColumns(newColumns);
   };
-
-  // This is the main board data with tickets organized
-  const organizedBoard = organizeTickets();
   
+  // Handle drag and drop events
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
     
-    // If dropped outside a droppable area
-    if (!destination) return;
-    
-    // If dropped in the same position
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
+    // If dropped outside a droppable area or same position, do nothing
+    if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
       return;
     }
     
-    // Update local board state
-    const start = organizedBoard.columns[source.droppableId];
-    const finish = organizedBoard.columns[destination.droppableId];
+    // Get source and destination columns
+    const startColumn = columns[source.droppableId];
+    const finishColumn = columns[destination.droppableId];
     
-    // Moving in the same column
-    if (start === finish) {
-      const newTickets = Array.from(start.tickets);
-      // Remove from old position
-      const [movedTicket] = newTickets.splice(source.index, 1);
-      // Insert at new position
-      newTickets.splice(destination.index, 0, movedTicket);
-      
-      const newColumn = {
-        ...start,
-        tickets: newTickets
-      };
-      
-      const newState = {
-        ...organizedBoard,
-        columns: {
-          ...organizedBoard.columns,
-          [newColumn.id]: newColumn
-        }
-      };
-      
-      setBoard(newState);
-      return;
-    }
+    if (!startColumn || !finishColumn) return;
     
-    // Moving from one column to another
-    const startTickets = Array.from(start.tickets);
+    // Create new arrays of tickets for the affected columns
+    const startTickets = Array.from(startColumn.tickets);
     const [movedTicket] = startTickets.splice(source.index, 1);
-    const newStart = {
-      ...start,
-      tickets: startTickets
-    };
     
-    const finishTickets = Array.from(finish.tickets);
-    finishTickets.splice(destination.index, 0, movedTicket);
-    const newFinish = {
-      ...finish,
-      tickets: finishTickets
-    };
-    
-    const newState = {
-      ...organizedBoard,
-      columns: {
-        ...organizedBoard.columns,
-        [newStart.id]: newStart,
-        [newFinish.id]: newFinish
-      }
-    };
-    
-    setBoard(newState);
-    
-    // Update ticket state in database
-    try {
-      // Find the correct state ID based on the column
-      const destinationStateName = destination.droppableId;
-      let newStateId = null;
+    if (startColumn.id === finishColumn.id) {
+      // Moving within the same column
+      startTickets.splice(destination.index, 0, movedTicket);
       
-      for (const state of states) {
-        const stateName = state.name.toLowerCase().replace(/\s+/g, '');
-        if (
-          (destinationStateName === 'backlog' && stateName.includes('backlog')) ||
-          (destinationStateName === 'todo' && (stateName.includes('todo') || stateName.includes('open'))) ||
-          (destinationStateName === 'inprogress' && stateName.includes('progress')) ||
-          (destinationStateName === 'done' && (stateName.includes('done') || stateName.includes('closed'))) ||
-          (destinationStateName === 'wontfix' && (stateName.includes('wont') || stateName.includes("won't"))) ||
-          (destinationStateName === 'duplicate' && stateName.includes('duplicate'))
-        ) {
-          newStateId = state.id;
-          break;
+      const newColumns = {
+        ...columns,
+        [startColumn.id]: {
+          ...startColumn,
+          tickets: startTickets
         }
-      }
+      };
       
-      if (newStateId) {
-        await updateTicket(draggableId, { stateId: newStateId });
-        console.log(`Updated ticket ${draggableId} to state ${newStateId}`);
+      // Update the columns state
+      setColumns(newColumns);
+    } else {
+      // Moving to a different column
+      const finishTickets = Array.from(finishColumn.tickets);
+      finishTickets.splice(destination.index, 0, movedTicket);
+      
+      const newColumns = {
+        ...columns,
+        [startColumn.id]: {
+          ...startColumn,
+          tickets: startTickets
+        },
+        [finishColumn.id]: {
+          ...finishColumn,
+          tickets: finishTickets
+        }
+      };
+      
+      // Update the columns state
+      setColumns(newColumns);
+      
+      // Get the appropriate state ID for the destination column
+      const newStateId = columnToStateMap[finishColumn.id];
+      
+      if (newStateId && movedTicket) {
+        try {
+          // Update the ticket's state in the database
+          await updateTicket(movedTicket.id, { stateId: newStateId });
+          console.log(`Updated ticket ${movedTicket.id} to state ${newStateId} (${finishColumn.title})`);
+        } catch (error) {
+          console.error('Error updating ticket state:', error);
+          // Revert the UI change if database update fails
+          organizeTicketsIntoColumns();
+        }
+      } else {
+        console.warn('Could not find a valid state ID for column:', finishColumn.id);
       }
-    } catch (error) {
-      console.error('Error updating ticket state:', error);
     }
   };
 
@@ -222,179 +221,75 @@ export default function BacklogPage() {
         </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Left column: Backlog */}
-            <div className="space-y-4">
-              <Droppable droppableId="backlog">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="bg-coffee-light p-4 rounded-lg min-h-[300px]"
-                  >
-                    <h3 className="text-lg font-medium text-coffee-dark mb-4">Backlog</h3>
-                    {organizedBoard.columns.backlog.tickets.map((ticket, index) => (
-                      <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-2"
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {columnOrder.map((columnId) => {
+              const column = columns[columnId];
+              if (!column) return null;
+              
+              return (
+                <div key={columnId} className="space-y-4">
+                  <Droppable droppableId={columnId}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`p-4 rounded-lg min-h-[200px] ${
+                          columnId === 'done' 
+                            ? 'bg-green-50' 
+                            : columnId === 'wontfix' || columnId === 'duplicate'
+                              ? 'bg-gray-50'
+                              : 'bg-coffee-light'
+                        }`}
+                      >
+                        <h3 className="text-lg font-medium text-coffee-dark mb-4">
+                          {column.title}
+                          <span className="ml-1 text-sm text-coffee-medium">
+                            ({column.tickets.length})
+                          </span>
+                        </h3>
+                        
+                        {column.tickets.map((ticket, index) => (
+                          <Draggable 
+                            key={ticket.id} 
+                            draggableId={ticket.id} 
+                            index={index}
                           >
-                            <TicketCard ticket={ticket} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-
-            {/* Middle column: To Do and In Progress */}
-            <div className="space-y-4">
-              <Droppable droppableId="todo">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="bg-coffee-light p-4 rounded-lg min-h-[140px]"
-                  >
-                    <h3 className="text-lg font-medium text-coffee-dark mb-4">To Do</h3>
-                    {organizedBoard.columns.todo.tickets.map((ticket, index) => (
-                      <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-2"
-                          >
-                            <TicketCard ticket={ticket} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-
-              <Droppable droppableId="inprogress">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="bg-coffee-light p-4 rounded-lg min-h-[140px]"
-                  >
-                    <h3 className="text-lg font-medium text-coffee-dark mb-4">In Progress</h3>
-                    {organizedBoard.columns.inprogress.tickets.map((ticket, index) => (
-                      <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-2"
-                          >
-                            <TicketCard ticket={ticket} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-
-            {/* Right column: Done states */}
-            <div className="space-y-4">
-              <Droppable droppableId="done">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="bg-green-50 p-4 rounded-lg min-h-[100px]"
-                  >
-                    <h3 className="text-lg font-medium text-coffee-dark mb-4">Done</h3>
-                    {organizedBoard.columns.done.tickets.map((ticket, index) => (
-                      <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-2"
-                          >
-                            <TicketCard ticket={ticket} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-
-              <Droppable droppableId="wontfix">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="bg-gray-50 p-4 rounded-lg min-h-[100px]"
-                  >
-                    <h3 className="text-lg font-medium text-coffee-dark mb-4">Won't Fix</h3>
-                    {organizedBoard.columns.wontfix.tickets.map((ticket, index) => (
-                      <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-2"
-                          >
-                            <TicketCard ticket={ticket} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-
-              <Droppable droppableId="duplicate">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="bg-gray-50 p-4 rounded-lg min-h-[100px]"
-                  >
-                    <h3 className="text-lg font-medium text-coffee-dark mb-4">Duplicate</h3>
-                    {organizedBoard.columns.duplicate.tickets.map((ticket, index) => (
-                      <Draggable key={ticket.id} draggableId={ticket.id} index={index}>
-                        {(provided) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-2"
-                          >
-                            <TicketCard ticket={ticket} />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className="mb-2"
+                              >
+                                <TicketCard ticket={ticket} />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+              );
+            })}
           </div>
         </DragDropContext>
+      )}
+      
+      {/* Debug information during development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-8 p-4 bg-gray-100 rounded text-xs">
+          <h4 className="font-bold">Debug Info:</h4>
+          <details>
+            <summary>State Mappings</summary>
+            <pre>{JSON.stringify({ 
+              states: states?.map(s => `${s.id}: ${s.name}`),
+              stateToColumnMap, 
+              columnToStateMap 
+            }, null, 2)}</pre>
+          </details>
+        </div>
       )}
     </div>
   );
