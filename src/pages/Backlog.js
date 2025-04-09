@@ -12,6 +12,7 @@ export default function BacklogPage() {
   const [columnOrder, setColumnOrder] = useState([]);
   const [stateToColumnMap, setStateToColumnMap] = useState({});
   const [columnToStateMap, setColumnToStateMap] = useState({});
+  const [swimlanes, setSwimlanes] = useState({});
   
   // Initialize board structure based on states from Firebase
   useEffect(() => {
@@ -21,47 +22,124 @@ export default function BacklogPage() {
       const newColumnOrder = [];
       const newStateToColumnMap = {};
       const newColumnToStateMap = {};
+      const newSwimlanes = {};
       
       // Create standard columns based on common ticket management states
       const standardColumns = [
-        { id: 'backlog', title: 'Backlog', stateNames: ['backlog'] },
-        { id: 'todo', title: 'To Do', stateNames: ['todo', 'open', 'new'] },
-        { id: 'inprogress', title: 'In Progress', stateNames: ['progress', 'in progress', 'working', 'started'] },
-        { id: 'done', title: 'Done', stateNames: ['done', 'closed', 'completed', 'finished'] },
-        { id: 'wontfix', title: "Won't Fix", stateNames: ['wont fix', "won't fix", 'wontfix'] },
-        { id: 'duplicate', title: 'Duplicate', stateNames: ['duplicate'] }
+        { 
+          id: 'backlog', 
+          title: 'Backlog',
+          icon: '📝',
+          color: 'bg-coffee-light',
+          borderColor: 'border-coffee-medium',
+          stateNames: ['backlog'] 
+        },
+        { 
+          id: 'todo', 
+          title: 'To Do',
+          icon: '📋',
+          color: 'bg-amber-50',
+          borderColor: 'border-amber-300', 
+          stateNames: ['todo', 'open', 'new'] 
+        },
+        { 
+          id: 'inprogress', 
+          title: 'In Progress',
+          icon: '⚙️',
+          color: 'bg-blue-50',
+          borderColor: 'border-blue-300',
+          stateNames: ['progress', 'in progress', 'working', 'started'] 
+        },
+        { 
+          id: 'done', 
+          title: 'Done',
+          icon: '✅',
+          color: 'bg-green-50',
+          borderColor: 'border-green-300',
+          hasSwimLanes: true,
+          swimLanes: [
+            {
+              id: 'done-completed',
+              title: 'Completed',
+              icon: '✓',
+              stateNames: ['done', 'closed', 'completed', 'finished']
+            },
+            {
+              id: 'done-wontfix',
+              title: "Won't Fix",
+              icon: '🚫',
+              stateNames: ['wont fix', "won't fix", 'wontfix']
+            },
+            {
+              id: 'done-duplicate',
+              title: 'Duplicate',
+              icon: '🔄',
+              stateNames: ['duplicate']
+            }
+          ]
+        }
       ];
       
       // Initialize standard columns
       standardColumns.forEach(column => {
         newColumns[column.id] = {
-          id: column.id,
-          title: column.title,
+          ...column,
           tickets: [],
           stateIds: []
         };
         newColumnOrder.push(column.id);
+        
+        // Set up swimlanes if the column has them
+        if (column.hasSwimLanes && column.swimLanes) {
+          newSwimlanes[column.id] = column.swimLanes.map(lane => ({
+            ...lane,
+            tickets: [],
+            stateIds: []
+          }));
+        }
       });
       
-      // Map state IDs to columns
+      // Map state IDs to columns and swimlanes
       states.forEach(state => {
         const stateName = state.name.toLowerCase();
         let mapped = false;
         
-        // Try to map to a standard column
+        // Try to map to a column with swimlanes first
         for (const column of standardColumns) {
-          if (column.stateNames.some(name => stateName.includes(name))) {
+          if (column.hasSwimLanes && column.swimLanes) {
+            for (let i = 0; i < column.swimLanes.length; i++) {
+              const lane = column.swimLanes[i];
+              if (lane.stateNames.some(name => stateName.includes(name))) {
+                // Add to the column's overall state IDs
+                newColumns[column.id].stateIds.push(state.id);
+                // Also add to the specific swimlane's state IDs
+                newSwimlanes[column.id][i].stateIds.push(state.id);
+                newStateToColumnMap[state.id] = {
+                  columnId: column.id,
+                  swimLaneId: lane.id
+                };
+                mapped = true;
+                break;
+              }
+            }
+            if (mapped) break;
+          } else if (column.stateNames.some(name => stateName.includes(name))) {
+            // Regular column without swimlanes
             newColumns[column.id].stateIds.push(state.id);
-            newStateToColumnMap[state.id] = column.id;
+            newStateToColumnMap[state.id] = {
+              columnId: column.id
+            };
             mapped = true;
             break;
           }
         }
         
-        // If the state doesn't map to any standard column, add it to backlog (as default)
+        // If the state doesn't map to any defined column, add it to backlog (as default)
         if (!mapped) {
           newColumns.backlog.stateIds.push(state.id);
-          newStateToColumnMap[state.id] = 'backlog';
+          newStateToColumnMap[state.id] = {
+            columnId: 'backlog'
+          };
         }
       });
       
@@ -71,6 +149,15 @@ export default function BacklogPage() {
         if (stateIds.length > 0) {
           // Use the first state ID as the primary one for this column
           newColumnToStateMap[columnId] = stateIds[0];
+          
+          // For columns with swimlanes, map each swimlane to its first state ID
+          if (newSwimlanes[columnId]) {
+            newSwimlanes[columnId].forEach(lane => {
+              if (lane.stateIds.length > 0) {
+                newColumnToStateMap[lane.id] = lane.stateIds[0];
+              }
+            });
+          }
         }
       });
       
@@ -79,6 +166,7 @@ export default function BacklogPage() {
       setColumnOrder(newColumnOrder);
       setStateToColumnMap(newStateToColumnMap);
       setColumnToStateMap(newColumnToStateMap);
+      setSwimlanes(newSwimlanes);
     }
   }, [states]);
   
@@ -91,38 +179,67 @@ export default function BacklogPage() {
   
   // Function to organize tickets into the appropriate columns
   const organizeTicketsIntoColumns = () => {
-    // Clone current columns
+    // Clone current columns and swimlanes
     const newColumns = { ...columns };
+    const newSwimlanes = { ...swimlanes };
     
-    // Reset tickets for all columns
+    // Reset tickets for all columns and swimlanes
     Object.keys(newColumns).forEach(columnId => {
       newColumns[columnId] = {
         ...newColumns[columnId],
         tickets: []
       };
+      
+      // Reset tickets for swimlanes if they exist for this column
+      if (newSwimlanes[columnId]) {
+        newSwimlanes[columnId] = newSwimlanes[columnId].map(lane => ({
+          ...lane,
+          tickets: []
+        }));
+      }
     });
     
-    // Add tickets to appropriate columns based on their state
+    // Add tickets to appropriate columns and swimlanes based on their state
     tickets.forEach(ticket => {
       const ticketWithStringId = {
         ...ticket,
         id: String(ticket.id) // Ensure ID is a string for drag and drop
       };
       
-      // Find the column for this ticket's state
-      const columnId = stateToColumnMap[ticket.stateId];
+      // Find the mapping for this ticket's state
+      const mapping = stateToColumnMap[ticket.stateId];
       
-      if (columnId && newColumns[columnId]) {
-        // Add ticket to the appropriate column
-        newColumns[columnId].tickets.push(ticketWithStringId);
+      if (mapping) {
+        const { columnId, swimLaneId } = mapping;
+        
+        if (columnId && newColumns[columnId]) {
+          // If this column has swimlanes and we know which swimlane
+          if (swimLaneId && newSwimlanes[columnId]) {
+            const laneIndex = newSwimlanes[columnId].findIndex(lane => lane.id === swimLaneId);
+            if (laneIndex !== -1) {
+              // Add ticket to the appropriate swimlane
+              newSwimlanes[columnId][laneIndex].tickets.push(ticketWithStringId);
+            } else {
+              // Fallback: add to column's tickets if swimlane not found
+              newColumns[columnId].tickets.push(ticketWithStringId);
+            }
+          } else {
+            // Add to column's tickets for regular columns
+            newColumns[columnId].tickets.push(ticketWithStringId);
+          }
+        } else {
+          // Fallback: add to backlog if column not found
+          newColumns.backlog.tickets.push(ticketWithStringId);
+        }
       } else {
-        // If no matching column found, add to backlog as default
+        // Fallback: add to backlog if no mapping found
         newColumns.backlog.tickets.push(ticketWithStringId);
       }
     });
     
-    // Update the columns state
+    // Update the columns and swimlanes state
     setColumns(newColumns);
+    setSwimlanes(newSwimlanes);
   };
   
   // Handle drag and drop events
@@ -134,162 +251,333 @@ export default function BacklogPage() {
       return;
     }
     
-    // Get source and destination columns
-    const startColumn = columns[source.droppableId];
-    const finishColumn = columns[destination.droppableId];
-    
-    if (!startColumn || !finishColumn) return;
-    
-    // Create new arrays of tickets for the affected columns
-    const startTickets = Array.from(startColumn.tickets);
-    const [movedTicket] = startTickets.splice(source.index, 1);
-    
-    if (startColumn.id === finishColumn.id) {
-      // Moving within the same column
-      startTickets.splice(destination.index, 0, movedTicket);
-      
-      const newColumns = {
-        ...columns,
-        [startColumn.id]: {
-          ...startColumn,
-          tickets: startTickets
+    // Helper function to find ticket and its index within a column or swimlane
+    const findTicket = (droppableId) => {
+      // Check if this is a swimlane ID (contains a dash)
+      if (droppableId.includes('-')) {
+        const [columnId, laneIdentifier] = droppableId.split('-');
+        const columnSwimlanes = swimlanes[columnId];
+        
+        if (columnSwimlanes) {
+          for (let i = 0; i < columnSwimlanes.length; i++) {
+            const lane = columnSwimlanes[i];
+            if (lane.id === droppableId) {
+              const ticketIndex = lane.tickets.findIndex(t => t.id === draggableId);
+              if (ticketIndex !== -1) {
+                return {
+                  columnId,
+                  isSwimLane: true,
+                  laneId: lane.id,
+                  laneIndex: i,
+                  tickets: [...lane.tickets],
+                  ticketIndex,
+                  ticket: lane.tickets[ticketIndex]
+                };
+              }
+            }
+          }
         }
-      };
+      }
       
-      // Update the columns state
-      setColumns(newColumns);
+      // Regular column lookup
+      const column = columns[droppableId];
+      if (column) {
+        const ticketIndex = column.tickets.findIndex(t => t.id === draggableId);
+        if (ticketIndex !== -1) {
+          return {
+            columnId: column.id,
+            isSwimLane: false,
+            tickets: [...column.tickets],
+            ticketIndex,
+            ticket: column.tickets[ticketIndex]
+          };
+        }
+      }
+      
+      return null;
+    };
+    
+    // Find source and destination information
+    const source_info = findTicket(source.droppableId);
+    
+    if (!source_info) {
+      console.error('Could not find source ticket');
+      return;
+    }
+    
+    // Update state based on where the ticket was dragged to
+    if (source.droppableId === destination.droppableId) {
+      // Moving within the same droppable (column or swimlane)
+      const tickets = source_info.tickets;
+      const [movedTicket] = tickets.splice(source.index, 1);
+      tickets.splice(destination.index, 0, movedTicket);
+      
+      // Update the appropriate state
+      if (source_info.isSwimLane) {
+        // Update swimlane
+        const newSwimlanes = { ...swimlanes };
+        newSwimlanes[source_info.columnId][source_info.laneIndex].tickets = tickets;
+        setSwimlanes(newSwimlanes);
+      } else {
+        // Update column
+        const newColumns = { ...columns };
+        newColumns[source_info.columnId].tickets = tickets;
+        setColumns(newColumns);
+      }
     } else {
-      // Moving to a different column
-      const finishTickets = Array.from(finishColumn.tickets);
-      finishTickets.splice(destination.index, 0, movedTicket);
+      // Moving between different droppables
+      // Remove from source
+      const sourceTickets = source_info.tickets;
+      const [movedTicket] = sourceTickets.splice(source.index, 1);
       
-      const newColumns = {
-        ...columns,
-        [startColumn.id]: {
-          ...startColumn,
-          tickets: startTickets
-        },
-        [finishColumn.id]: {
-          ...finishColumn,
-          tickets: finishTickets
-        }
-      };
-      
-      // Update the columns state
-      setColumns(newColumns);
-      
-      // Get the appropriate state ID for the destination column
-      const newStateId = columnToStateMap[finishColumn.id];
-      
-      if (newStateId && movedTicket) {
-        try {
-          // Update the ticket's state in the database
-          await updateTicket(movedTicket.id, { stateId: newStateId });
-          console.log(`Updated ticket ${movedTicket.id} to state ${newStateId} (${finishColumn.title})`);
-        } catch (error) {
-          console.error('Error updating ticket state:', error);
-          // Revert the UI change if database update fails
-          organizeTicketsIntoColumns();
+      // Add to destination
+      if (destination.droppableId.includes('-')) {
+        // Destination is a swimlane
+        const [columnId, laneIdentifier] = destination.droppableId.split('-');
+        const laneIndex = swimlanes[columnId].findIndex(lane => lane.id === destination.droppableId);
+        
+        if (laneIndex !== -1) {
+          const newSwimlanes = { ...swimlanes };
+          const destinationTickets = [...newSwimlanes[columnId][laneIndex].tickets];
+          destinationTickets.splice(destination.index, 0, movedTicket);
+          newSwimlanes[columnId][laneIndex].tickets = destinationTickets;
+          
+          // Update source (could be column or another swimlane)
+          if (source_info.isSwimLane) {
+            newSwimlanes[source_info.columnId][source_info.laneIndex].tickets = sourceTickets;
+          } else {
+            const newColumns = { ...columns };
+            newColumns[source_info.columnId].tickets = sourceTickets;
+            setColumns(newColumns);
+          }
+          
+          setSwimlanes(newSwimlanes);
+          
+          // Update ticket state in database
+          const newStateId = columnToStateMap[destination.droppableId];
+          if (newStateId) {
+            try {
+              await updateTicket(movedTicket.id, { stateId: newStateId });
+              console.log(`Updated ticket ${movedTicket.id} to state ${newStateId}`);
+            } catch (error) {
+              console.error('Error updating ticket state:', error);
+              organizeTicketsIntoColumns(); // Revert if update fails
+            }
+          }
         }
       } else {
-        console.warn('Could not find a valid state ID for column:', finishColumn.id);
+        // Destination is a regular column
+        const newColumns = { ...columns };
+        if (!newColumns[destination.droppableId]) {
+          console.error('Destination column not found:', destination.droppableId);
+          return;
+        }
+        
+        const destinationTickets = [...newColumns[destination.droppableId].tickets];
+        destinationTickets.splice(destination.index, 0, movedTicket);
+        newColumns[destination.droppableId].tickets = destinationTickets;
+        
+        // Update source (could be column or swimlane)
+        if (source_info.isSwimLane) {
+          const newSwimlanes = { ...swimlanes };
+          newSwimlanes[source_info.columnId][source_info.laneIndex].tickets = sourceTickets;
+          setSwimlanes(newSwimlanes);
+        } else {
+          newColumns[source_info.columnId].tickets = sourceTickets;
+        }
+        
+        setColumns(newColumns);
+        
+        // Update ticket state in database
+        const newStateId = columnToStateMap[destination.droppableId];
+        if (newStateId) {
+          try {
+            await updateTicket(movedTicket.id, { stateId: newStateId });
+            console.log(`Updated ticket ${movedTicket.id} to state ${newStateId}`);
+          } catch (error) {
+            console.error('Error updating ticket state:', error);
+            organizeTicketsIntoColumns(); // Revert if update fails
+          }
+        }
       }
     }
   };
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
+    <div className="px-4 py-6 sm:px-6 lg:px-8 bg-gradient-to-b from-coffee-light/30 to-transparent min-h-screen">
       <PageHeader 
-        title="Backlog Brewing"
-        subtitle="Drag and drop tickets to update their status"
+        title={
+          <div className="flex items-center">
+            <span className="mr-2">☕</span>
+            <span>Backlog Brewing</span>
+          </div>
+        }
+        subtitle="Drag tickets between columns to update their status"
       />
 
       {loading ? (
-        <div className="text-center py-10">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-coffee-dark"></div>
-          <p className="mt-2 text-coffee-medium">Loading tickets...</p>
+        <div className="flex flex-col items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coffee-dark"></div>
+          <p className="mt-4 text-coffee-dark font-medium">Brewing your tickets...</p>
         </div>
       ) : tickets.length === 0 ? (
-        <div className="text-center py-10 bg-white rounded-lg shadow">
-          <div className="mx-auto h-20 w-20 rounded-full bg-coffee-light flex items-center justify-center">
-            <svg className="h-10 w-10 text-coffee-medium" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="mt-8 text-center py-12 bg-white rounded-xl shadow-coffee">
+          <div className="mx-auto h-24 w-24 rounded-full bg-coffee-light flex items-center justify-center">
+            <svg className="h-12 w-12 text-coffee-medium" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <h3 className="mt-2 text-lg font-medium text-coffee-dark">No tickets found</h3>
-          <p className="mt-1 text-coffee-medium">Create some tickets from the Dashboard to get started.</p>
+          <h3 className="mt-4 text-xl font-display font-bold text-coffee-dark">No tickets found</h3>
+          <p className="mt-2 text-coffee-medium max-w-md mx-auto">Create some tickets from the Dashboard to start organizing your work.</p>
         </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {columnOrder.map((columnId) => {
               const column = columns[columnId];
               if (!column) return null;
               
               return (
-                <div key={columnId} className="space-y-4">
-                  <Droppable droppableId={columnId}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`p-4 rounded-lg min-h-[200px] ${
-                          columnId === 'done' 
-                            ? 'bg-green-50' 
-                            : columnId === 'wontfix' || columnId === 'duplicate'
-                              ? 'bg-gray-50'
-                              : 'bg-coffee-light'
-                        }`}
-                      >
-                        <h3 className="text-lg font-medium text-coffee-dark mb-4">
-                          {column.title}
-                          <span className="ml-1 text-sm text-coffee-medium">
-                            ({column.tickets.length})
-                          </span>
-                        </h3>
-                        
-                        {column.tickets.map((ticket, index) => (
-                          <Draggable 
-                            key={ticket.id} 
-                            draggableId={ticket.id} 
-                            index={index}
-                          >
-                            {(provided) => (
+                <div key={columnId} className="flex flex-col">
+                  <div className={`flex items-center gap-2 mb-3 px-3 py-2 ${column.color} rounded-lg shadow-sm border ${column.borderColor}`}>
+                    <span className="text-xl" role="img" aria-label={column.title}>
+                      {column.icon}
+                    </span>
+                    <h3 className="text-lg font-display font-semibold text-coffee-dark">
+                      {column.title} 
+                    </h3>
+                    {column.hasSwimLanes ? (
+                      <span className="ml-auto bg-white text-coffee-dark text-sm font-medium px-2 py-1 rounded-full shadow-sm">
+                        {swimlanes[columnId]?.reduce((count, lane) => count + lane.tickets.length, 0) || 0}
+                      </span>
+                    ) : (
+                      <span className="ml-auto bg-white text-coffee-dark text-sm font-medium px-2 py-1 rounded-full shadow-sm">
+                        {column.tickets.length}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {column.hasSwimLanes && swimlanes[columnId] ? (
+                    // Render swimlanes for this column
+                    <div className={`flex-1 p-3 rounded-xl bg-white/70 shadow-coffee border border-gray-100 min-h-[300px]`}>
+                      {swimlanes[columnId].map((lane, index) => (
+                        <div key={lane.id} className="mb-4 last:mb-0">
+                          <div className="flex items-center gap-1 mb-2 px-2">
+                            <span className="text-sm" role="img" aria-label={lane.title}>
+                              {lane.icon}
+                            </span>
+                            <h4 className="text-sm font-medium text-coffee-dark">
+                              {lane.title}
+                            </h4>
+                            <span className="ml-auto text-xs text-gray-400">
+                              {lane.tickets.length}
+                            </span>
+                          </div>
+                          
+                          <Droppable droppableId={lane.id}>
+                            {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className="mb-2"
+                                {...provided.droppableProps}
+                                className={`rounded-lg p-2 transition-colors duration-200 min-h-[50px] ${
+                                  snapshot.isDraggingOver 
+                                    ? `${column.color} shadow-inner border border-${column.borderColor}` 
+                                    : 'bg-gray-50/50'
+                                }`}
                               >
-                                <TicketCard ticket={ticket} />
+                                <div className="space-y-3">
+                                  {lane.tickets.map((ticket, index) => (
+                                    <Draggable 
+                                      key={ticket.id} 
+                                      draggableId={ticket.id} 
+                                      index={index}
+                                    >
+                                      {(provided, snapshot) => (
+                                        <div
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          {...provided.dragHandleProps}
+                                          className={`transition-all duration-200 ${
+                                            snapshot.isDragging 
+                                              ? 'scale-105 rotate-1 shadow-coffee-hover' 
+                                              : ''
+                                          }`}
+                                        >
+                                          <TicketCard ticket={ticket} />
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                </div>
+                                {provided.placeholder}
+                                
+                                {lane.tickets.length === 0 && (
+                                  <div className="flex items-center justify-center h-[40px] text-center opacity-50">
+                                    <p className="text-xs text-gray-400">Drop tickets here</p>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
+                          </Droppable>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    // Render regular column without swimlanes
+                    <Droppable droppableId={columnId}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`flex-1 p-3 rounded-xl min-h-[300px] transition-colors duration-200 ${
+                            snapshot.isDraggingOver 
+                              ? `${column.color} shadow-inner border-2 ${column.borderColor}` 
+                              : 'bg-white/70 shadow-coffee border border-gray-100'
+                          }`}
+                        >
+                          <div className="space-y-3">
+                            {column.tickets.map((ticket, index) => (
+                              <Draggable 
+                                key={ticket.id} 
+                                draggableId={ticket.id} 
+                                index={index}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    className={`transition-all duration-200 ${
+                                      snapshot.isDragging 
+                                        ? 'scale-105 rotate-1 shadow-coffee-hover' 
+                                        : ''
+                                    }`}
+                                  >
+                                    <TicketCard ticket={ticket} />
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                          </div>
+                          {provided.placeholder}
+                          
+                          {column.tickets.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
+                              <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                              <p className="text-sm text-gray-500">Drop tickets here</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Droppable>
+                  )}
                 </div>
               );
             })}
           </div>
         </DragDropContext>
-      )}
-      
-      {/* Debug information during development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-8 p-4 bg-gray-100 rounded text-xs">
-          <h4 className="font-bold">Debug Info:</h4>
-          <details>
-            <summary>State Mappings</summary>
-            <pre>{JSON.stringify({ 
-              states: states?.map(s => `${s.id}: ${s.name}`),
-              stateToColumnMap, 
-              columnToStateMap 
-            }, null, 2)}</pre>
-          </details>
-        </div>
       )}
     </div>
   );
