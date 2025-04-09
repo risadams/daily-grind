@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatabase } from '../context/DatabaseContext.js';
-import { FaSort, FaSortUp, FaSortDown, FaSearch, FaEdit, FaEye, FaCheckCircle, FaPlus } from 'react-icons/fa/index.js';
+import { FaSort, FaSortUp, FaSortDown, FaSearch, FaEdit, FaEye, FaCheckCircle, FaPlus, FaFilter, FaTimes } from 'react-icons/fa/index.js';
 import Modal from '../components/Modal.js';
 import TicketDetail from '../components/TicketDetail.js';
 import TicketFormDialog from '../components/TicketFormDialog.js';
@@ -18,6 +18,7 @@ export default function AllTicketsPage() {
     type: '',
     priority: ''
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   // State for sorting
   const [sortConfig, setSortConfig] = useState({
@@ -151,7 +152,7 @@ export default function AllTicketsPage() {
 
   // Helper function to display sort direction indicator
   const getSortIcon = (columnName) => {
-    if (sortConfig.key !== columnName) return <FaSort className="inline ml-1 text-coffee-medium" />;
+    if (sortConfig.key !== columnName) return <FaSort className="inline ml-1 text-gray-400" />;
     return sortConfig.direction === 'asc' ?
       <FaSortUp className="inline ml-1 text-coffee-dark" /> :
       <FaSortDown className="inline ml-1 text-coffee-dark" />;
@@ -159,70 +160,91 @@ export default function AllTicketsPage() {
 
   // Helper function for getting formatted names
   const getTypeName = (typeId) => {
-    // Check if types is loaded and typeId is valid
     if (!typeId || !types || types.length === 0) return 'Unknown';
-
-    // Convert typeId to string for comparison if needed
     const searchId = typeof typeId === 'string' ? typeId : String(typeId);
-
-    // Find the type by ID using string comparison to be safe
     const typeObj = types.find(type => String(type.id) === searchId);
     return typeObj ? typeObj.name : 'Unknown';
   };
 
   const getStateName = (stateId) => {
-    // Check if states is loaded and stateId is valid
     if (!stateId || !states || states.length === 0) return 'Unknown';
-
-    // Convert stateId to string for comparison if needed
     const searchId = typeof stateId === 'string' ? stateId : String(stateId);
-
-    // Find the state by ID using string comparison to be safe
     const stateObj = states.find(state => String(state.id) === searchId);
     return stateObj ? stateObj.name : 'Unknown';
   };
 
-  // Helper function to get priority name from priorityId
   const getPriorityName = (priorityId) => {
-    // Check if priorities is loaded and priorityId is valid
     if (!priorityId || !priorities || priorities.length === 0) return 'Medium';
-
-    // Convert priorityId to string for comparison if needed
     const searchId = typeof priorityId === 'string' ? priorityId : String(priorityId);
-
-    // Find the priority by ID using string comparison to be safe
     const priorityObj = priorities.find(priority => String(priority.id) === searchId);
     return priorityObj ? priorityObj.name : 'Medium';
   };
 
-  // Helper function to get priority color based on priority name
   const getPriorityColorClass = (priorityId) => {
     const priority = priorities.find(p => p.id === priorityId);
-    const color = priority?.color || 'gray';
-    return `bg-${color}-100 text-${color}-800`;
+    if (!priority) return 'bg-gray-100 text-gray-800';
+    
+    switch (priority.name.toLowerCase()) {
+      case 'high':
+        return 'bg-red-100 text-red-800 border border-red-200';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      case 'low':
+        return 'bg-green-100 text-green-800 border border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
+    }
   };
 
-  // Format date to handle edge cases
+  const getStatusColorClass = (stateId) => {
+    const stateName = getStateName(stateId).toLowerCase();
+    
+    if (stateName === 'closed') {
+      return 'bg-green-100 text-green-800 border border-green-200';
+    } else if (stateName === 'in progress' || stateName === 'inprogress') {
+      return 'bg-blue-100 text-blue-800 border border-blue-200';
+    } else if (stateName === 'in review') {
+      return 'bg-purple-100 text-purple-800 border border-purple-200';
+    } else if (stateName === 'to do' || stateName === 'todo') {
+      return 'bg-gray-100 text-gray-800 border border-gray-200';
+    } else if (stateName === "won't fix") {
+      return 'bg-red-100 text-red-800 border border-red-200';
+    } else {
+      return 'bg-coffee-light text-coffee-dark border border-coffee-medium';
+    }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      type: '',
+      priority: ''
+    });
+    setSearchTerm('');
+  };
+
+  const hasActiveFilters = () => {
+    return searchTerm || filters.status || filters.type || filters.priority;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'No Date';
 
     const date = new Date(dateString);
 
-    // Check if date is valid
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
     }
 
-    return date.toLocaleDateString();
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString(undefined, options);
   };
 
-  // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  // Success message handler
   const showSuccessMessage = (message) => {
     setTicketActionSuccess({ show: true, message });
     setTimeout(() => {
@@ -231,237 +253,314 @@ export default function AllTicketsPage() {
   };
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
+    <div className="px-4 py-6 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
       {/* Success message alert */}
       {ticketActionSuccess.show && (
-        <div className="mb-4 p-4 rounded-md bg-green-50 text-green-800">
-          <span className="block sm:inline">{ticketActionSuccess.message}</span>
+        <div className="mb-4 p-4 rounded-md bg-green-50 border border-green-200 text-green-800 shadow-md flex justify-between items-center">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="block sm:inline">{ticketActionSuccess.message}</span>
+          </div>
+          <button onClick={() => setTicketActionSuccess({ show: false, message: '' })}>
+            <FaTimes className="h-4 w-4 text-green-800" />
+          </button>
         </div>
       )}
 
       <PageHeader
-        title="All Tickets"
+        title={
+          <div className="flex items-center">
+            <span className="mr-2">🎟️</span>
+            <span>All Tickets</span>
+          </div>
+        }
         subtitle="View and manage all tickets in your system"
       />
 
       {/* Filter and Search Bar */}
-      <div className="bg-white shadow rounded-lg mb-6 p-4">
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
-          {/* Search */}
-          <div className="w-full md:w-1/3">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <FaSearch className="text-coffee-medium" />
+      <div className="bg-white shadow-md rounded-xl mb-6 p-4 transition-all duration-150">
+        <div className="flex flex-col space-y-4">
+          {/* Top row with search and buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Search */}
+            <div className="w-full sm:w-1/2">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <FaSearch className="text-coffee-medium" />
+                </div>
+                <input
+                  type="text"
+                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg block w-full pl-10 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-light transition-all"
+                  placeholder="Search tickets by title or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <input
-                type="text"
-                className="bg-gray-50 border border-coffee-light text-coffee-dark rounded-lg block w-full pl-10 p-2"
-                placeholder="Search for tickets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all
+                  ${showFilters 
+                    ? 'bg-coffee-light text-coffee-dark border-coffee-medium' 
+                    : 'bg-white text-coffee-medium border-gray-200 hover:bg-gray-50'}`}
+              >
+                <FaFilter /> Filters {hasActiveFilters() && <span className="bg-coffee-primary text-white text-xs w-5 h-5 rounded-full inline-flex items-center justify-center">!</span>}
+              </button>
+              
+              {hasActiveFilters() && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all"
+                >
+                  <FaTimes /> Clear
+                </button>
+              )}
+              
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-coffee-dark text-white rounded-lg hover:bg-coffee-primary transition-all shadow-sm"
+                onClick={() => setShowTicketModal(true)}
+              >
+                <FaPlus className="text-sm" /> New Ticket
+              </button>
             </div>
           </div>
-
-          {/* Filters */}
-          <div className="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 items-stretch md:items-center">
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="bg-gray-50 border border-coffee-light text-coffee-dark rounded-lg p-2 pr-8 appearance-none"
-              style={{ backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235b5b5b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")" }}
-            >
-              <option value="">All Statuses</option>
-              {states.map(state => (
-                <option key={state.id} value={state.id}>{state.name}</option>
-              ))}
-            </select>
-
-            <select
-              name="type"
-              value={filters.type}
-              onChange={handleFilterChange}
-              className="bg-gray-50 border border-coffee-light text-coffee-dark rounded-lg p-2 pr-8 appearance-none"
-              style={{ backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235b5b5b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")" }}
-            >
-              <option value="">All Types</option>
-              {types.map(type => (
-                <option key={type.id} value={type.id}>{type.name}</option>
-              ))}
-            </select>
-
-            <select
-              name="priority"
-              value={filters.priority}
-              onChange={handleFilterChange}
-              className="bg-gray-50 border border-coffee-light text-coffee-dark rounded-lg p-2 pr-8 appearance-none"
-              style={{ backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235b5b5b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")" }}
-            >
-              <option value="">All Priorities</option>
-              {priorities && priorities.map(priority => (
-                <option key={priority.id} value={priority.id}>{priority.name}</option>
-              ))}
-            </select>
-
-            <button
-              className="inline-flex items-center bg-coffee-primary text-white rounded-lg p-2 hover:bg-coffee-dark"
-              onClick={() => setShowTicketModal(true)}
-            >
-              <FaPlus className="mr-1" /> Add Ticket
-            </button>
-          </div>
+          
+          {/* Filter options - collapsible */}
+          {showFilters && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-gray-100 animate-fadeIn">
+              <div>
+                <label className="block text-sm font-medium text-coffee-dark mb-1">Status</label>
+                <select
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light"
+                >
+                  <option value="">All Statuses</option>
+                  {states.map(state => (
+                    <option key={state.id} value={state.id}>{state.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-coffee-dark mb-1">Type</label>
+                <select
+                  name="type"
+                  value={filters.type}
+                  onChange={handleFilterChange}
+                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light"
+                >
+                  <option value="">All Types</option>
+                  {types.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-coffee-dark mb-1">Priority</label>
+                <select
+                  name="priority"
+                  value={filters.priority}
+                  onChange={handleFilterChange}
+                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light"
+                >
+                  <option value="">All Priorities</option>
+                  {priorities && priorities.map(priority => (
+                    <option key={priority.id} value={priority.id}>{priority.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Ticket Stats */}
+      {filteredTickets.length > 0 && (
+        <div className="flex items-center mb-4 text-sm text-coffee-medium">
+          <span className="mr-2">Displaying {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}</span>
+          {hasActiveFilters() && (
+            <span className="bg-coffee-light px-2 py-1 rounded-md text-coffee-dark">Filtered results</span>
+          )}
+        </div>
+      )}
+
       {/* Ticket Grid */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow-md rounded-xl overflow-hidden transition-all duration-150">
         {loading ? (
-          <div className="flex items-center justify-center p-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coffee-primary"></div>
-            <p className="ml-3 text-coffee-medium">Loading tickets...</p>
+          <div className="flex flex-col items-center justify-center p-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coffee-primary mb-4"></div>
+            <p className="text-coffee-medium">Brewing your tickets...</p>
           </div>
         ) : error ? (
           <div className="p-10 text-center">
-            <p className="text-red-500">{error}</p>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-red-500 font-medium mb-2">Something went wrong</p>
+            <p className="text-gray-500 mb-4">{error}</p>
             <button
-              className="mt-4 bg-coffee-primary text-white px-4 py-2 rounded hover:bg-coffee-dark"
+              className="bg-coffee-primary text-white px-4 py-2 rounded-lg hover:bg-coffee-dark transition-colors shadow-sm"
               onClick={() => window.location.reload()}
             >
               Retry
             </button>
           </div>
         ) : filteredTickets.length === 0 ? (
-          <div className="text-center p-10">
-            <svg className="mx-auto h-12 w-12 text-coffee-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-            </svg>
-            <h3 className="mt-2 text-lg font-medium text-coffee-dark">No tickets found</h3>
-            <p className="mt-1 text-coffee-medium">Try adjusting your search or filter criteria.</p>
+          <div className="text-center p-16">
+            <div className="mx-auto h-16 w-16 rounded-full bg-coffee-light flex items-center justify-center mb-4">
+              <svg className="h-8 w-8 text-coffee-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-coffee-dark mb-1">No tickets found</h3>
+            <p className="text-coffee-medium mb-6">Try adjusting your search or filter criteria.</p>
             <button
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-coffee-primary hover:bg-coffee-dark"
+              className="inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-md text-white bg-coffee-primary hover:bg-coffee-dark transition-colors"
               onClick={() => setShowTicketModal(true)}
             >
-              <FaPlus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+              <FaPlus className="mr-2" />
               Create New Ticket
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-coffee-light">
-              <thead className="bg-coffee-light">
-                <tr>
+            <table className="w-full">
+              <thead>
+                <tr className="bg-coffee-light border-b border-coffee-medium">
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
                     onClick={() => handleSort('title')}
                   >
-                    Title {getSortIcon('title')}
+                    <div className="flex items-center">
+                      Title {getSortIcon('title')}
+                    </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
                     onClick={() => handleSort('typeId')}
                   >
-                    Type {getSortIcon('typeId')}
+                    <div className="flex items-center">
+                      Type {getSortIcon('typeId')}
+                    </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
                     onClick={() => handleSort('stateId')}
                   >
-                    Status {getSortIcon('stateId')}
+                    <div className="flex items-center">
+                      Status {getSortIcon('stateId')}
+                    </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
                     onClick={() => handleSort('priorityId')}
                   >
-                    Priority {getSortIcon('priorityId')}
+                    <div className="flex items-center">
+                      Priority {getSortIcon('priorityId')}
+                    </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
                     onClick={() => handleSort('assignedToUserId')}
                   >
-                    Assigned To {getSortIcon('assignedToUserId')}
+                    <div className="flex items-center">
+                      Assigned To {getSortIcon('assignedToUserId')}
+                    </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
                     onClick={() => handleSort('creationDate')}
                   >
-                    Created {getSortIcon('creationDate')}
+                    <div className="flex items-center">
+                      Created {getSortIcon('creationDate')}
+                    </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider"
+                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider"
                   >
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-coffee-light">
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTickets.map((ticket) => (
-                  <tr key={ticket.id} className="hover:bg-coffee-light">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-coffee-dark">
-                      {ticket.title}
+                  <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-coffee-dark">
+                      <div className="flex items-center">
+                        <span className="font-medium">{ticket.title}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
+                    <td className="px-6 py-4 text-sm text-coffee-medium">
                       {getTypeName(ticket.typeId)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${getStateName(ticket.stateId) === 'Closed' ? 'bg-green-100 text-green-800' :
-                          getStateName(ticket.stateId) === 'InProgress' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-blue-100 text-blue-800'}`}
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${getStatusColorClass(ticket.stateId)}`}
                       >
                         {getStateName(ticket.stateId)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
                         ${getPriorityColorClass(ticket.priorityId)}`}
                       >
                         {getPriorityName(ticket.priorityId)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
-                      {getUserDisplayName(ticket.assignedToUserId)}
+                    <td className="px-6 py-4 text-sm text-coffee-medium">
+                      {getUserDisplayName(ticket.assignedToUserId) || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
+                    <td className="px-6 py-4 text-sm text-coffee-medium">
                       {formatDate(ticket.creationDate)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right space-x-2">
-                      <button
-                        className="text-coffee-primary hover:text-coffee-dark inline-block mr-2"
-                        onClick={() => {
-                          setSelectedTicket(ticket);
-                          setShowViewModal(true);
-                        }}
-                        title="View Details"
-                      >
-                        <FaEye />
-                      </button>
-                      <button
-                        className="text-yellow-500 hover:text-yellow-700 inline-block mr-2"
-                        onClick={() => {
-                          setSelectedTicket(ticket);
-                          setShowEditModal(true);
-                        }}
-                        title="Edit"
-                      >
-                        <FaEdit />
-                      </button>
-                      {getStateName(ticket.stateId) !== 'Closed' && (
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center space-x-3 justify-end">
                         <button
-                          className="text-green-500 hover:text-green-700 inline-block"
-                          onClick={() => handleCloseTicket(ticket.id)}
-                          title="Close Ticket"
+                          className="text-coffee-primary p-1.5 rounded-full hover:bg-coffee-light hover:text-coffee-dark transition-colors"
+                          onClick={() => {
+                            setSelectedTicket(ticket);
+                            setShowViewModal(true);
+                          }}
+                          title="View Details"
                         >
-                          <FaCheckCircle />
+                          <FaEye />
                         </button>
-                      )}
+                        <button
+                          className="text-yellow-500 p-1.5 rounded-full hover:bg-yellow-50 hover:text-yellow-700 transition-colors"
+                          onClick={() => {
+                            setSelectedTicket(ticket);
+                            setShowEditModal(true);
+                          }}
+                          title="Edit"
+                        >
+                          <FaEdit />
+                        </button>
+                        {getStateName(ticket.stateId) !== 'Closed' && (
+                          <button
+                            className="text-green-500 p-1.5 rounded-full hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => handleCloseTicket(ticket.id)}
+                            title="Close Ticket"
+                          >
+                            <FaCheckCircle />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

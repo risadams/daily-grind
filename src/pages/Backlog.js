@@ -23,17 +23,15 @@ export default function BacklogPage() {
   // Set up component mount/unmount tracking
   useEffect(() => {
     isMounted.current = true;
-    setIsDragDropEnabled(false);
     
     return () => {
       isMounted.current = false;
-      setIsDragDropEnabled(false);
     };
   }, []);
   
-  // Copy tickets from context to local state for better control
+  // Initialize tickets from context - convert IDs to strings for consistency
   useEffect(() => {
-    if (!isMounted.current) return;
+    if (!allTickets || !isMounted.current) return;
     
     // Ensure all ticket IDs are strings for consistency
     const formattedTickets = allTickets.map(ticket => ({
@@ -46,7 +44,7 @@ export default function BacklogPage() {
   
   // Initialize board structure based on states from Firebase
   useEffect(() => {
-    if (!isMounted.current || !states || states.length === 0) return;
+    if (!states || states.length === 0 || !isMounted.current) return;
     
     // Create columns based on states from database
     const newColumns = {};
@@ -63,7 +61,7 @@ export default function BacklogPage() {
         icon: '📝',
         color: 'bg-coffee-light',
         borderColor: 'border-coffee-medium',
-        stateIds: [] // Will be populated with actual state IDs
+        stateIds: []
       },
       { 
         id: 'todo', 
@@ -71,7 +69,7 @@ export default function BacklogPage() {
         icon: '📋',
         color: 'bg-amber-50',
         borderColor: 'border-amber-300',
-        stateIds: [] // Will be populated with actual state IDs
+        stateIds: []
       },
       { 
         id: 'inprogress', 
@@ -79,7 +77,7 @@ export default function BacklogPage() {
         icon: '⚙️',
         color: 'bg-blue-50',
         borderColor: 'border-blue-300',
-        stateIds: [] // Will be populated with actual state IDs
+        stateIds: []
       },
       { 
         id: 'done', 
@@ -93,19 +91,19 @@ export default function BacklogPage() {
             id: 'done-completed',
             title: 'Completed',
             icon: '✓',
-            stateIds: [] // Will be populated with actual state IDs
+            stateIds: []
           },
           {
             id: 'done-wontfix',
             title: "Won't Fix",
             icon: '🚫',
-            stateIds: [] // Will be populated with actual state IDs
+            stateIds: []
           },
           {
             id: 'done-duplicate',
             title: 'Duplicate',
             icon: '🔄',
-            stateIds: [] // Will be populated with actual state IDs
+            stateIds: []
           }
         ]
       }
@@ -116,7 +114,7 @@ export default function BacklogPage() {
       newColumns[column.id] = {
         ...column,
         tickets: [],
-        stateIds: [] // Ensure stateIds is initialized as an empty array
+        stateIds: []
       };
       newColumnOrder.push(column.id);
       
@@ -125,20 +123,12 @@ export default function BacklogPage() {
         newSwimlanes[column.id] = column.swimLanes.map(lane => ({
           ...lane,
           tickets: [],
-          stateIds: [] // Ensure stateIds is initialized as an empty array
+          stateIds: []
         }));
       }
     });
     
-    // Map state IDs to columns:
-    // 1: Created -> backlog
-    // 2: To Do -> todo
-    // 3: In Progress -> inprogress
-    // 4: In Review -> inprogress
-    // 5: Closed -> done/completed
-    // 6: Wont Fix -> done/wontfix
-    // 7: Duplicate -> done/duplicate
-    
+    // Map state IDs to columns
     states.forEach(state => {
       // Create state id mapping based on the numeric id
       const stateId = String(state.id);
@@ -146,14 +136,14 @@ export default function BacklogPage() {
       // Map each state ID to its appropriate column/swimlane
       switch (stateId) {
         case '1': // Created
-          if (newColumns.backlog && newColumns.backlog.stateIds) {
+          if (newColumns.backlog) {
             newColumns.backlog.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'backlog' };
           }
           break;
           
         case '2': // To Do
-          if (newColumns.todo && newColumns.todo.stateIds) {
+          if (newColumns.todo) {
             newColumns.todo.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'todo' };
           }
@@ -161,14 +151,14 @@ export default function BacklogPage() {
           
         case '3': // In Progress
         case '4': // In Review (also goes to In Progress column)
-          if (newColumns.inprogress && newColumns.inprogress.stateIds) {
+          if (newColumns.inprogress) {
             newColumns.inprogress.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'inprogress' };
           }
           break;
           
         case '5': // Closed
-          if (newColumns.done && newColumns.done.stateIds && newSwimlanes.done && newSwimlanes.done[0]) {
+          if (newColumns.done && newSwimlanes.done && newSwimlanes.done[0]) {
             newColumns.done.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'done', swimLaneId: 'done-completed' };
             newSwimlanes.done[0].stateIds.push(stateId);
@@ -176,7 +166,7 @@ export default function BacklogPage() {
           break;
           
         case '6': // Won't Fix
-          if (newColumns.done && newColumns.done.stateIds && newSwimlanes.done && newSwimlanes.done[1]) {
+          if (newColumns.done && newSwimlanes.done && newSwimlanes.done[1]) {
             newColumns.done.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'done', swimLaneId: 'done-wontfix' };
             newSwimlanes.done[1].stateIds.push(stateId);
@@ -184,7 +174,7 @@ export default function BacklogPage() {
           break;
           
         case '7': // Duplicate
-          if (newColumns.done && newColumns.done.stateIds && newSwimlanes.done && newSwimlanes.done[2]) {
+          if (newColumns.done && newSwimlanes.done && newSwimlanes.done[2]) {
             newColumns.done.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'done', swimLaneId: 'done-duplicate' };
             newSwimlanes.done[2].stateIds.push(stateId);
@@ -193,7 +183,7 @@ export default function BacklogPage() {
           
         default:
           // If we encounter an unknown state ID, add it to backlog as a default
-          if (newColumns.backlog && newColumns.backlog.stateIds) {
+          if (newColumns.backlog) {
             newColumns.backlog.stateIds.push(stateId);
             newStateToColumnMap[stateId] = { columnId: 'backlog' };
           }
@@ -219,17 +209,19 @@ export default function BacklogPage() {
       }
     });
     
-    // Update state
-    setColumns(newColumns);
-    setColumnOrder(newColumnOrder);
-    setStateToColumnMap(newStateToColumnMap);
-    setColumnToStateMap(newColumnToStateMap);
-    setSwimlanes(newSwimlanes);
+    // Update state with all the new values
+    if (isMounted.current) {
+      setColumns(newColumns);
+      setColumnOrder(newColumnOrder);
+      setStateToColumnMap(newStateToColumnMap);
+      setColumnToStateMap(newColumnToStateMap);
+      setSwimlanes(newSwimlanes);
+    }
   }, [states]);
   
-  // Organize tickets into columns
-  const organizeTicketsIntoColumns = useCallback(() => {
-    if (!tickets || tickets.length === 0 || !isMounted.current) {
+  // Organize tickets into columns when tickets change
+  useEffect(() => {
+    if (!tickets.length || !Object.keys(stateToColumnMap).length || !Object.keys(columns).length || !isMounted.current || loading) {
       return;
     }
     
@@ -251,20 +243,13 @@ export default function BacklogPage() {
     
     // Add tickets to appropriate columns and swimlanes based on their state
     tickets.forEach(ticket => {
-      // Ensure each ticket has a string ID 
-      const safeTicket = {
-        ...ticket,
-        id: String(ticket.id)
-      };
-      
-      // Find the mapping for this ticket's state
+      const safeTicket = { ...ticket, id: String(ticket.id) };
       const mapping = stateToColumnMap[ticket.stateId];
       
       if (mapping) {
         const { columnId, swimLaneId } = mapping;
         
         if (columnId && newColumns[columnId]) {
-          // If this column has swimlanes and we know which swimlane
           if (swimLaneId && newSwimlanes[columnId]) {
             const laneIndex = newSwimlanes[columnId].findIndex(lane => lane.id === swimLaneId);
             if (laneIndex !== -1) {
@@ -278,17 +263,13 @@ export default function BacklogPage() {
             // Add to column's tickets for regular columns
             newColumns[columnId].tickets.push(safeTicket);
           }
-        } else {
+        } else if (newColumns.backlog) {
           // Fallback: add to backlog if column not found
-          if (newColumns.backlog) {
-            newColumns.backlog.tickets.push(safeTicket);
-          }
-        }
-      } else {
-        // Fallback: add to backlog if no mapping found
-        if (newColumns.backlog) {
           newColumns.backlog.tickets.push(safeTicket);
         }
+      } else if (newColumns.backlog) {
+        // Fallback: add to backlog if no mapping found
+        newColumns.backlog.tickets.push(safeTicket);
       }
     });
     
@@ -296,28 +277,10 @@ export default function BacklogPage() {
     if (isMounted.current) {
       setColumns(newColumns);
       setSwimlanes(newSwimlanes);
-      
-      // Only enable drag and drop after columns are populated
-      setTimeout(() => {
-        if (isMounted.current) {
-          setIsDragDropEnabled(true);
-        }
-      }, 0);
+      // Enable drag and drop after columns are populated
+      setIsDragDropEnabled(true);
     }
-  }, [columns, swimlanes, stateToColumnMap, tickets]);
-  
-  // Run ticket organization when data is ready
-  useEffect(() => {
-    if (
-      !loading && 
-      tickets.length > 0 && 
-      Object.keys(stateToColumnMap).length > 0 &&
-      Object.keys(columns).length > 0 &&
-      isMounted.current
-    ) {
-      organizeTicketsIntoColumns();
-    }
-  }, [loading, tickets, stateToColumnMap, columns, organizeTicketsIntoColumns]);
+  }, [tickets, stateToColumnMap, loading]);
   
   // Handle drag and drop events
   const onDragEnd = useCallback(async (result) => {
@@ -331,15 +294,18 @@ export default function BacklogPage() {
     console.log("Drag completed with ID:", draggableId);
     
     // Find the ticket that was dragged
-    const findTicketById = (ticketId) => {
-      return tickets.find(t => String(t.id) === String(ticketId));
-    };
+    const movedTicket = tickets.find(t => String(t.id) === draggableId);
+    
+    if (!movedTicket) {
+      console.error('Could not find the dragged ticket with ID:', draggableId);
+      return;
+    }
     
     // Get the destination container (column or swimlane) info
     const getContainerInfo = (droppableId) => {
       if (droppableId.includes('-')) {
         // This is a swimlane
-        const [columnId, swimlaneIdentifier] = droppableId.split('-');
+        const [columnId] = droppableId.split('-');
         return { columnId, swimlaneId: droppableId, isSwimLane: true };
       } else {
         // This is a regular column
@@ -350,14 +316,6 @@ export default function BacklogPage() {
     // Get info about source and destination
     const sourceInfo = getContainerInfo(source.droppableId);
     const destinationInfo = getContainerInfo(destination.droppableId);
-    
-    // Find the ticket that was moved
-    const movedTicket = findTicketById(draggableId);
-    
-    if (!movedTicket) {
-      console.error('Could not find the dragged ticket with ID:', draggableId);
-      return;
-    }
     
     // Clone current columns and swimlanes
     const newColumns = JSON.parse(JSON.stringify(columns));
@@ -371,13 +329,13 @@ export default function BacklogPage() {
       if (sourceLaneIndex !== -1) {
         newSwimlanes[sourceInfo.columnId][sourceLaneIndex].tickets = 
           newSwimlanes[sourceInfo.columnId][sourceLaneIndex].tickets.filter(
-            t => String(t.id) !== String(draggableId)
+            t => String(t.id) !== draggableId
           );
       }
     } else {
       newColumns[sourceInfo.columnId].tickets = 
         newColumns[sourceInfo.columnId].tickets.filter(
-          t => String(t.id) !== String(draggableId)
+          t => String(t.id) !== draggableId
         );
     }
     
@@ -415,7 +373,7 @@ export default function BacklogPage() {
         if (isMounted.current) {
           setTickets(prevTickets => 
             prevTickets.map(t => 
-              String(t.id) === String(movedTicket.id) 
+              String(t.id) === draggableId 
                 ? { ...t, stateId: newStateId } 
                 : t
             )
@@ -423,13 +381,9 @@ export default function BacklogPage() {
         }
       } catch (error) {
         console.error('Error updating ticket state:', error);
-        // Revert if update fails
-        if (isMounted.current) {
-          organizeTicketsIntoColumns();
-        }
       }
     }
-  }, [tickets, columns, swimlanes, columnToStateMap, updateTicket, organizeTicketsIntoColumns]);
+  }, [tickets, columns, swimlanes, columnToStateMap, updateTicket]);
 
   // Generate backlog board content based on data and loading state
   const renderBoardContent = () => {
