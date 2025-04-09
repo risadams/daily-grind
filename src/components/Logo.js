@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { FaCoffee } from 'react-icons/fa/index.js';
 
 const Logo = ({ size = 'normal' }) => {
@@ -10,7 +11,7 @@ const Logo = ({ size = 'normal' }) => {
       : 'h-10 w-10';
 
   return (
-    <div className="flex items-center">
+    <Link to="/" className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
       <div className={`relative ${sizeClass} mr-2`}>
         <div className="absolute inset-0 bg-coffee-medium rounded-lg transform rotate-12" aria-hidden="true"></div>
         <div className="absolute inset-0 bg-coffee-dark rounded-lg transform -rotate-6" aria-hidden="true"></div>
@@ -29,7 +30,7 @@ const Logo = ({ size = 'normal' }) => {
         <span className="text-coffee-dark">Daily</span>
         <span className="text-coffee-accent">Grind</span>
       </div>
-    </div>
+    </Link>
   );
 };
 

@@ -18,6 +18,7 @@ import ForgotPassword from './pages/ForgotPassword.js';
 import NotFound from './pages/NotFound.js';
 import LogoutPage from './pages/LogoutPage.js';
 import BacklogPage from './pages/Backlog.js';
+import LandingPage from './pages/LandingPage.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -34,6 +35,9 @@ const App = () => {
       <AuthProvider>
         <DatabaseProvider>
           <Routes>
+            {/* Root path */}
+            <Route path="/" element={<LandingPage />} />
+            
             {/* Public routes */}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
@@ -44,7 +48,6 @@ const App = () => {
             {/* Protected routes */}
             <Route element={<PrivateRoute />}>
               <Route element={<MainLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/tickets" element={<AllTickets />} />
                 <Route path="/profile" element={<Profile />} />
