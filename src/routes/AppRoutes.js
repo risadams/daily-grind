@@ -11,6 +11,10 @@ import Register from '../pages/Register';
 // Protected pages
 import Dashboard from '../pages/Dashboard';
 
+// Public pages
+import AboutPage from '../pages/AboutPage';
+import LandingPage from '../pages/LandingPage';
+
 // Redirect component that checks auth state
 const AuthRedirect = () => {
   const { isAuthenticated } = useAuth();
@@ -23,9 +27,10 @@ const AppRoutes = () => {
       <AuthProvider>
         <Routes>
           {/* Home route redirects based on auth status */}
-          <Route path="/" element={<AuthRedirect />} />
+          <Route path="/" element={<LandingPage />} />
           
-          {/* Public routes - accessible only when not authenticated */}
+          {/* Public routes - accessible to all users */}
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           

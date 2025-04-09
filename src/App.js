@@ -19,6 +19,10 @@ import NotFound from './pages/NotFound.js';
 import LogoutPage from './pages/LogoutPage.js';
 import BacklogPage from './pages/Backlog.js';
 import LandingPage from './pages/LandingPage.js';
+import AboutPage from './pages/AboutPage.js';
+import FeaturesPage from './pages/FeaturesPage.js';
+import PricingPage from './pages/PricingPage.js';
+import BlogPage from './pages/BlogPage.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -39,6 +43,10 @@ const App = () => {
             <Route path="/" element={<LandingPage />} />
             
             {/* Public routes */}
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/blog" element={<BlogPage />} />
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
