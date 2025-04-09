@@ -309,12 +309,17 @@ export function DatabaseProvider({ children }) {
     if (!currentUser) return { success: false, error: 'User not authenticated' };
     
     try {
+      // Convert ticketId to string to ensure consistency
+      const stringTicketId = String(ticketId);
+      
       // Set medium priority as default if not provided
-      if (!ticketData.priorityId) {
+      if (!ticketData.priorityId && !ticketData.stateId) {
         const mediumPriority = priorities.find(p => p.name === 'Medium');
         ticketData.priorityId = mediumPriority ? mediumPriority.id : 'priority-3';
       }
-
+      
+      console.log(`Updating ticket ${stringTicketId} with data:`, ticketData);
+      
       // Extract linked tickets from the data
       const linkedTickets = ticketData.linkedTickets || [];
       const ticketDataForUpdate = { ...ticketData };
@@ -324,11 +329,11 @@ export function DatabaseProvider({ children }) {
       ticketDataForUpdate.lastModifiedDate = new Date().toISOString();
       
       // Update the ticket
-      const result = await dbService.updateTicket(ticketId, ticketDataForUpdate);
+      const result = await dbService.updateTicket(stringTicketId, ticketDataForUpdate);
       
       if (result.success) {
         // First get existing links and delete them
-        const existingLinks = await dbService.getTicketLinksByTicketId(ticketId);
+        const existingLinks = await dbService.getTicketLinksByTicketId(stringTicketId);
         if (existingLinks.success) {
           for (const link of existingLinks.data) {
             await dbService.deleteTicketLink(link.id);
@@ -338,7 +343,7 @@ export function DatabaseProvider({ children }) {
         // Create new links
         for (const link of linkedTickets) {
           await dbService.createTicketLink({
-            sourceTicketId: ticketId,
+            sourceTicketId: stringTicketId,
             targetTicketId: link.id,
             linkType: link.linkType || 'Related'
           });
@@ -347,7 +352,18 @@ export function DatabaseProvider({ children }) {
         // Update local state
         setTickets(prevTickets => 
           prevTickets.map(ticket => 
-            ticket.id === ticketId ? { 
+            ticket.id === stringTicketId ? { 
+              ...ticket, 
+              ...ticketDataForUpdate,
+              linkedTickets
+            } : ticket
+          )
+        );
+        
+        // Also update allTickets state to keep it in sync
+        setAllTickets(prevAllTickets => 
+          prevAllTickets.map(ticket => 
+            ticket.id === stringTicketId ? { 
               ...ticket, 
               ...ticketDataForUpdate,
               linkedTickets
@@ -358,7 +374,7 @@ export function DatabaseProvider({ children }) {
         return { 
           success: true, 
           data: { 
-            id: ticketId, 
+            id: stringTicketId, 
             ...ticketDataForUpdate,
             linkedTickets
           } 

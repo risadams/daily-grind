@@ -95,6 +95,9 @@ export const createTicket = async (ticketData) => {
 
 export const updateTicket = async (ticketId, ticketData) => {
   try {
+    // Ensure ticketId is a string
+    const stringTicketId = String(ticketId);
+    
     // Remove creationDate from update data to preserve original
     const { creationDate, ...updateData } = ticketData;
     
@@ -103,8 +106,11 @@ export const updateTicket = async (ticketId, ticketData) => {
       updateData.lastModifiedDate = new Date().toISOString();
     }
     
-    await updateDoc(doc(db, 'tickets', ticketId), updateData);
-    return { success: true, data: { id: ticketId, ...updateData } };
+    console.log(`Database service updating ticket ${stringTicketId} with:`, updateData);
+    
+    // Ensure the document reference is created with a string ID
+    await updateDoc(doc(db, 'tickets', stringTicketId), updateData);
+    return { success: true, data: { id: stringTicketId, ...updateData } };
   } catch (error) {
     console.error('Error updating ticket:', error);
     return { success: false, error: error.message };
