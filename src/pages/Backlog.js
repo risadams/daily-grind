@@ -24,7 +24,7 @@ export default function BacklogPage() {
       const newColumnToStateMap = {};
       const newSwimlanes = {};
       
-      // Create standard columns based on common ticket management states
+      // Define column structure with their icons and styling
       const standardColumns = [
         { 
           id: 'backlog', 
@@ -32,15 +32,15 @@ export default function BacklogPage() {
           icon: '📝',
           color: 'bg-coffee-light',
           borderColor: 'border-coffee-medium',
-          stateNames: ['backlog'] 
+          stateIds: [] // Will be populated with actual state IDs
         },
         { 
           id: 'todo', 
           title: 'To Do',
           icon: '📋',
           color: 'bg-amber-50',
-          borderColor: 'border-amber-300', 
-          stateNames: ['todo', 'open', 'new'] 
+          borderColor: 'border-amber-300',
+          stateIds: [] // Will be populated with actual state IDs
         },
         { 
           id: 'inprogress', 
@@ -48,7 +48,7 @@ export default function BacklogPage() {
           icon: '⚙️',
           color: 'bg-blue-50',
           borderColor: 'border-blue-300',
-          stateNames: ['progress', 'in progress', 'working', 'started'] 
+          stateIds: [] // Will be populated with actual state IDs
         },
         { 
           id: 'done', 
@@ -62,19 +62,19 @@ export default function BacklogPage() {
               id: 'done-completed',
               title: 'Completed',
               icon: '✓',
-              stateNames: ['done', 'closed', 'completed', 'finished']
+              stateIds: [] // Will be populated with actual state IDs
             },
             {
               id: 'done-wontfix',
               title: "Won't Fix",
               icon: '🚫',
-              stateNames: ['wont fix', "won't fix", 'wontfix']
+              stateIds: [] // Will be populated with actual state IDs
             },
             {
               id: 'done-duplicate',
               title: 'Duplicate',
               icon: '🔄',
-              stateNames: ['duplicate']
+              stateIds: [] // Will be populated with actual state IDs
             }
           ]
         }
@@ -85,7 +85,7 @@ export default function BacklogPage() {
         newColumns[column.id] = {
           ...column,
           tickets: [],
-          stateIds: []
+          stateIds: [] // Ensure stateIds is initialized as an empty array
         };
         newColumnOrder.push(column.id);
         
@@ -94,71 +94,104 @@ export default function BacklogPage() {
           newSwimlanes[column.id] = column.swimLanes.map(lane => ({
             ...lane,
             tickets: [],
-            stateIds: []
+            stateIds: [] // Ensure stateIds is initialized as an empty array
           }));
         }
       });
       
-      // Map state IDs to columns and swimlanes
+      // Direct mapping of state IDs to columns based on the provided state IDs
+      // 1: Created -> backlog
+      // 2: To Do -> todo
+      // 3: In Progress -> inprogress
+      // 4: In Review -> inprogress
+      // 5: Closed -> done/completed
+      // 6: Wont Fix -> done/wontfix
+      // 7: Duplicate -> done/duplicate
+      
       states.forEach(state => {
-        const stateName = state.name.toLowerCase();
-        let mapped = false;
+        // Create state id mapping based on the numeric id
+        const stateId = state.id;
         
-        // Try to map to a column with swimlanes first
-        for (const column of standardColumns) {
-          if (column.hasSwimLanes && column.swimLanes) {
-            for (let i = 0; i < column.swimLanes.length; i++) {
-              const lane = column.swimLanes[i];
-              if (lane.stateNames.some(name => stateName.includes(name))) {
-                // Add to the column's overall state IDs
-                newColumns[column.id].stateIds.push(state.id);
-                // Also add to the specific swimlane's state IDs
-                newSwimlanes[column.id][i].stateIds.push(state.id);
-                newStateToColumnMap[state.id] = {
-                  columnId: column.id,
-                  swimLaneId: lane.id
-                };
-                mapped = true;
-                break;
-              }
+        // Map each state ID to its appropriate column/swimlane
+        switch (stateId) {
+          case '1': // Created
+            if (newColumns.backlog && newColumns.backlog.stateIds) {
+              newColumns.backlog.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'backlog' };
             }
-            if (mapped) break;
-          } else if (column.stateNames.some(name => stateName.includes(name))) {
-            // Regular column without swimlanes
-            newColumns[column.id].stateIds.push(state.id);
-            newStateToColumnMap[state.id] = {
-              columnId: column.id
-            };
-            mapped = true;
             break;
-          }
-        }
-        
-        // If the state doesn't map to any defined column, add it to backlog (as default)
-        if (!mapped) {
-          newColumns.backlog.stateIds.push(state.id);
-          newStateToColumnMap[state.id] = {
-            columnId: 'backlog'
-          };
+            
+          case '2': // To Do
+            if (newColumns.todo && newColumns.todo.stateIds) {
+              newColumns.todo.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'todo' };
+            }
+            break;
+            
+          case '3': // In Progress
+          case '4': // In Review (also goes to In Progress column)
+            if (newColumns.inprogress && newColumns.inprogress.stateIds) {
+              newColumns.inprogress.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'inprogress' };
+            }
+            break;
+            
+          case '5': // Closed
+            if (newColumns.done && newColumns.done.stateIds && newSwimlanes.done && newSwimlanes.done[0]) {
+              newColumns.done.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'done', swimLaneId: 'done-completed' };
+              newSwimlanes.done[0].stateIds.push(stateId);
+            }
+            break;
+            
+          case '6': // Won't Fix
+            if (newColumns.done && newColumns.done.stateIds && newSwimlanes.done && newSwimlanes.done[1]) {
+              newColumns.done.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'done', swimLaneId: 'done-wontfix' };
+              newSwimlanes.done[1].stateIds.push(stateId);
+            }
+            break;
+            
+          case '7': // Duplicate
+            if (newColumns.done && newColumns.done.stateIds && newSwimlanes.done && newSwimlanes.done[2]) {
+              newColumns.done.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'done', swimLaneId: 'done-duplicate' };
+              newSwimlanes.done[2].stateIds.push(stateId);
+            }
+            break;
+            
+          default:
+            // If we encounter an unknown state ID, add it to backlog as a default
+            if (newColumns.backlog && newColumns.backlog.stateIds) {
+              newColumns.backlog.stateIds.push(stateId);
+              newStateToColumnMap[stateId] = { columnId: 'backlog' };
+            }
+            break;
         }
       });
       
       // Create reverse mapping from column ID to state IDs
       Object.keys(newColumns).forEach(columnId => {
         const stateIds = newColumns[columnId].stateIds;
-        if (stateIds.length > 0) {
+        if (stateIds && stateIds.length > 0) {
           // Use the first state ID as the primary one for this column
           newColumnToStateMap[columnId] = stateIds[0];
           
           // For columns with swimlanes, map each swimlane to its first state ID
           if (newSwimlanes[columnId]) {
             newSwimlanes[columnId].forEach(lane => {
-              if (lane.stateIds.length > 0) {
+              if (lane.stateIds && lane.stateIds.length > 0) {
                 newColumnToStateMap[lane.id] = lane.stateIds[0];
               }
             });
           }
         }
+      });
+      
+      // Debug information
+      console.log('State mapping initialized:', {
+        stateToColumnMap: newStateToColumnMap,
+        columnToStateMap: newColumnToStateMap
       });
       
       // Update state
@@ -229,11 +262,15 @@ export default function BacklogPage() {
           }
         } else {
           // Fallback: add to backlog if column not found
-          newColumns.backlog.tickets.push(ticketWithStringId);
+          if (newColumns.backlog) {
+            newColumns.backlog.tickets.push(ticketWithStringId);
+          }
         }
       } else {
         // Fallback: add to backlog if no mapping found
-        newColumns.backlog.tickets.push(ticketWithStringId);
+        if (newColumns.backlog) {
+          newColumns.backlog.tickets.push(ticketWithStringId);
+        }
       }
     });
     
