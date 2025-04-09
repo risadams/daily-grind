@@ -1,14 +1,16 @@
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import useTickets from '../hooks/useTickets.js';
 import Badge from './Badge.js';
 import Avatar from './Avatar.js';
 import Card from './Card.js';
 import './TicketCard.css';
 import { truncateText } from '../utils/constants.js';
+import { useTheme } from '../context/ThemeContext.js';
 
 /**
  * TicketCard component displays a summarized view of a ticket
  * Memoized for better performance when rendering lists
+ * Enhanced with accessibility features for screen readers and keyboard navigation
  * 
  * @param {Object} props
  * @param {Object} props.ticket - The ticket data to display
@@ -24,12 +26,8 @@ const TicketCard = ({ ticket, onCardClick, showDetails = false, className = '' }
     getUserDisplayName, 
     formatTicketDate
   } = useTickets();
-
-  const handleClick = () => {
-    if (onCardClick) {
-      onCardClick(ticket);
-    }
-  };
+  
+  const { isDarkMode } = useTheme();
 
   // Extract needed data
   const typeDisplay = getTypeName(ticket.typeId);
@@ -40,20 +38,52 @@ const TicketCard = ({ ticket, onCardClick, showDetails = false, className = '' }
   // Get the priority class for the card border
   const priorityClass = `priority-${priorityDisplay.toLowerCase()}`;
 
+  // Handle click event with keyboard support
+  const handleClick = useCallback(() => {
+    if (onCardClick) {
+      onCardClick(ticket);
+    }
+  }, [onCardClick, ticket]);
+
+  // Handle keyboard event for accessibility
+  const handleKeyDown = useCallback((e) => {
+    // Trigger click on Enter or Space
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  }, [handleClick]);
+
+  // Generate an ID for ARIA attributes
+  const ticketId = `ticket-${ticket.id}`;
+  const statusId = `status-${ticket.id}`;
+  const priorityId = `priority-${ticket.id}`;
+
   return (
     <Card 
-      onClick={handleClick} 
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       className={`ticket-card ${priorityClass} ${className} hover:shadow-coffee-hover transition-shadow duration-200`}
       bodyClassName="p-0"
+      tabIndex={0}
+      role="button"
+      aria-labelledby={ticketId}
+      aria-describedby={`${statusId} ${priorityId}`}
     >
       <div className="ticket-card-header p-3 border-b border-coffee-cream">
         <div className="flex justify-between items-start">
-          <div className="ticket-card-title font-medium text-coffee-dark">{ticket.title}</div>
+          <div 
+            id={ticketId}
+            className="ticket-card-title font-medium text-coffee-dark"
+          >
+            {ticket.title}
+          </div>
           <Badge 
             type="priority"
             text={priorityDisplay}
             value={priorityDisplay}
             className="ml-2 flex-shrink-0"
+            id={priorityId}
           />
         </div>
         {showDetails && ticket.description && (
@@ -68,24 +98,26 @@ const TicketCard = ({ ticket, onCardClick, showDetails = false, className = '' }
             type="status"
             text={stateDisplay}
             value={stateDisplay}
+            id={statusId}
           />
           <div className="text-sm text-coffee-medium">{typeDisplay}</div>
         </div>
         
         <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center">
+          <div className="flex items-center" aria-label={`Assigned to ${assigneeName}`}>
             <Avatar 
               name={assigneeName} 
               size="xs" 
               className="mr-2"
+              aria-hidden="true"
             />
-            <span className="text-xs text-coffee-medium">
+            <span className={`text-xs ${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>
               {assigneeName}
             </span>
           </div>
           
           {ticket.creationDate && (
-            <div className="text-xs text-coffee-medium">
+            <div className={`text-xs ${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`} aria-label={`Created on ${formatTicketDate(ticket.creationDate)}`}>
               {formatTicketDate(ticket.creationDate)}
             </div>
           )}

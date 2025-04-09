@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTheme } from '../context/ThemeContext.js';
 
 /**
  * Badge component for displaying status, priority, and other indicators
  * with standardized styling across the application.
+ * Enhanced with accessibility features for better screen reader support.
  * 
  * @param {Object} props
  * @param {string} props.text - The text to display in the badge
@@ -11,6 +13,8 @@ import React from 'react';
  * @param {string} props.color - Custom color class when not using predefined types
  * @param {string} props.className - Additional CSS classes
  * @param {React.ReactNode} props.icon - Optional icon to display before the text
+ * @param {string} props.id - Optional ID for accessibility references
+ * @param {string} props.ariaLabel - Optional custom aria-label
  */
 const Badge = ({ 
   text, 
@@ -18,12 +22,40 @@ const Badge = ({
   value = '', 
   color = '', 
   className = '',
-  icon = null
+  icon = null,
+  id,
+  ariaLabel
 }) => {
+  const { isDarkMode } = useTheme();
+  
   // Helper function to get status color class
   const getStatusColorClass = (status) => {
     const normalizedStatus = status.toLowerCase().replace(/\s+/g, '');
     
+    // Dark mode classes
+    if (isDarkMode) {
+      switch (normalizedStatus) {
+        case 'closed':
+          return 'bg-green-900 bg-opacity-30 text-green-400 border border-green-700';
+        case 'inprogress':
+        case 'in-progress':
+          return 'bg-blue-900 bg-opacity-30 text-blue-400 border border-blue-700';
+        case 'review':
+        case 'inreview':
+          return 'bg-purple-900 bg-opacity-30 text-purple-400 border border-purple-700';
+        case 'todo':
+        case 'to-do':
+        case 'backlog':
+          return 'bg-gray-800 bg-opacity-30 text-gray-400 border border-gray-700';
+        case 'wontfix':
+        case 'won\'tfix':
+          return 'bg-red-900 bg-opacity-30 text-red-400 border border-red-700';
+        default:
+          return 'bg-dark-hover text-dark-primary border border-dark-default';
+      }
+    }
+    
+    // Light mode classes (original)
     switch (normalizedStatus) {
       case 'closed':
         return 'bg-green-100 text-green-800 border border-green-200';
@@ -49,6 +81,23 @@ const Badge = ({
   const getPriorityColorClass = (priority) => {
     const normalizedPriority = priority.toLowerCase();
     
+    // Dark mode classes
+    if (isDarkMode) {
+      switch (normalizedPriority) {
+        case 'highest':
+        case 'high':
+          return 'bg-red-900 bg-opacity-30 text-red-400 border border-red-700';
+        case 'medium':
+          return 'bg-yellow-900 bg-opacity-30 text-yellow-400 border border-yellow-700';
+        case 'low':
+        case 'lowest':
+          return 'bg-green-900 bg-opacity-30 text-green-400 border border-green-700';
+        default:
+          return 'bg-gray-800 bg-opacity-30 text-gray-400 border border-gray-700';
+      }
+    }
+    
+    // Light mode classes (original)
     switch (normalizedPriority) {
       case 'highest':
       case 'high':
@@ -70,10 +119,19 @@ const Badge = ({
   } else if (type === 'priority') {
     colorClass = getPriorityColorClass(value || text);
   }
+
+  // Generate accessible aria attributes
+  const badgeType = type.charAt(0).toUpperCase() + type.slice(1);
+  const finalAriaLabel = ariaLabel || `${badgeType}: ${text}`;
   
   return (
-    <span className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${colorClass} ${className}`}>
-      {icon && <span className="mr-1">{icon}</span>}
+    <span 
+      className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${colorClass} ${className}`}
+      role="status"
+      aria-label={finalAriaLabel}
+      id={id}
+    >
+      {icon && <span className="mr-1" aria-hidden="true">{icon}</span>}
       {text}
     </span>
   );
