@@ -23,6 +23,7 @@ import AboutPage from './pages/AboutPage.js';
 import FeaturesPage from './pages/FeaturesPage.js';
 import PricingPage from './pages/PricingPage.js';
 import BlogPage from './pages/BlogPage.js';
+import SupportPage from './pages/SupportPage.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -47,6 +48,7 @@ const App = () => {
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/blog" element={<BlogPage />} />
+            <Route path="/support" element={<SupportPage />} />
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

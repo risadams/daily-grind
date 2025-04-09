@@ -18,7 +18,7 @@ const PublicFooter = ({ currentPage = "/" }) => {
     { path: "/features", label: "Features" },
     { path: "/pricing", label: "Pricing" },
     { path: "/blog", label: "Blog" },
-    { path: "#", label: "Support" } // This is not a real route yet
+    { path: "/support", label: "Support" }
   ];
 
   return (
