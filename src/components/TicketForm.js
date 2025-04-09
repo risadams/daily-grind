@@ -1,22 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import { useDatabase } from '../context/DatabaseContext.js';
+import useTickets from '../hooks/useTickets.js';
 import Button from './Button.js';
+import FormInput from './FormInput.js';
+import FormSelect from './FormSelect.js';
 import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa/index.js';
 
 const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, priorities, formatUserDisplayName, users, getUserDisplayName, loadUserDisplayName } = useDatabase();
+  const { 
+    tickets, 
+    types, 
+    states, 
+    priorities, 
+    users, 
+    getUserDisplayName 
+  } = useTickets();
   
   // Form data state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [typeId, setTypeId] = useState('');
-  const [stateId, setStateId] = useState('');
-  const [assignedToUserId, setAssignedToUserId] = useState('');
-  const [parentTicketId, setParentTicketId] = useState('');
-  const [linkedTickets, setLinkedTickets] = useState([]);
-  const [priorityId, setPriorityId] = useState('');
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    typeId: '',
+    stateId: '',
+    assignedToUserId: '',
+    parentTicketId: '',
+    linkedTickets: [],
+    priorityId: ''
+  });
+
+  // Form validation state
+  const [errors, setErrors] = useState({
+    title: '',
+    typeId: '',
+    stateId: ''
+  });
   
   // Search state - separate for parent and linked tickets
   const [parentSearchQuery, setParentSearchQuery] = useState('');
@@ -30,27 +48,43 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   // Set form initial values if editing
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      setTitle(initialData.title || '');
-      setDescription(initialData.description || '');
-      setTypeId(initialData.typeId || '');
-      setStateId(initialData.stateId || '');
-      setAssignedToUserId(initialData.assignedToUserId || '');
-      setParentTicketId(initialData.parentTicketId || '');
-      setLinkedTickets(initialData.linkedTickets || []);
-      setPriorityId(initialData.priorityId || '');
+      setFormData({
+        title: initialData.title || '',
+        description: initialData.description || '',
+        typeId: initialData.typeId || '',
+        stateId: initialData.stateId || '',
+        assignedToUserId: initialData.assignedToUserId || '',
+        parentTicketId: initialData.parentTicketId || '',
+        linkedTickets: initialData.linkedTickets || [],
+        priorityId: initialData.priorityId || '',
+      });
     } else {
       // Default values for new tickets
       const openState = states.find(s => s.name === 'Open');
-      if (openState) setStateId(openState.id);
-      
-      // Assign to current user by default for new tickets
-      setAssignedToUserId(currentUser?.uid || '');
-      
-      // Set Medium priority by default
       const mediumPriority = priorities.find(p => p.name === 'Medium');
-      if (mediumPriority) setPriorityId(mediumPriority.id);
+
+      setFormData({
+        title: '',
+        description: '',
+        typeId: '',
+        stateId: openState ? openState.id : '',
+        assignedToUserId: currentUser?.uid || '',
+        parentTicketId: '',
+        linkedTickets: [],
+        priorityId: mediumPriority ? mediumPriority.id : '',
+      });
     }
   }, [initialData, states, priorities, currentUser]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error for the field when user makes a change
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
 
   // Filter tickets based on search query for parent ticket
   const filteredParentTickets = tickets.filter(ticket => 
@@ -62,7 +96,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   // Filter tickets based on search query for linked tickets
   const filteredLinkedTickets = tickets.filter(ticket => 
     (!initialData || ticket.id !== initialData.id) && // Don't include current ticket in results
-    !linkedTickets.some(t => t.id === ticket.id) && // Don't include already linked tickets
+    !formData.linkedTickets.some(t => t.id === ticket.id) && // Don't include already linked tickets
     (ticket.title.toLowerCase().includes(linkedSearchQuery.toLowerCase()) || 
      ticket.id.toLowerCase().includes(linkedSearchQuery.toLowerCase()))
   );
@@ -70,12 +104,18 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   // Add a linked ticket
   const addLinkedTicket = (ticket) => {
     // Check if ticket is already linked
-    if (!linkedTickets.some(t => t.id === ticket.id)) {
-      setLinkedTickets([...linkedTickets, { 
-        id: ticket.id, 
-        title: ticket.title,
-        linkType: 'Related' // Default link type
-      }]);
+    if (!formData.linkedTickets.some(t => t.id === ticket.id)) {
+      setFormData(prev => ({
+        ...prev,
+        linkedTickets: [
+          ...prev.linkedTickets, 
+          { 
+            id: ticket.id, 
+            title: ticket.title,
+            linkType: 'Related' // Default link type
+          }
+        ]
+      }));
     }
     setLinkedSearchQuery('');
     setShowLinkedSearchResults(false);
@@ -83,49 +123,63 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
 
   // Set a parent ticket
   const setParentTicket = (ticket) => {
-    setParentTicketId(ticket.id);
+    setFormData(prev => ({ ...prev, parentTicketId: ticket.id }));
     setParentSearchQuery('');
     setShowParentSearchResults(false);
   };
 
   // Remove a linked ticket
   const removeLinkedTicket = (ticketId) => {
-    setLinkedTickets(linkedTickets.filter(t => t.id !== ticketId));
+    setFormData(prev => ({
+      ...prev,
+      linkedTickets: prev.linkedTickets.filter(t => t.id !== ticketId)
+    }));
   };
 
   // Clear parent ticket
   const clearParentTicket = () => {
-    setParentTicketId('');
+    setFormData(prev => ({ ...prev, parentTicketId: '' }));
   };
 
   // Get parent ticket details
   const getParentTicketDetails = () => {
-    if (!parentTicketId) return null;
-    return tickets.find(t => t.id === parentTicketId);
+    if (!formData.parentTicketId) return null;
+    return tickets.find(t => t.id === formData.parentTicketId);
+  };
+  
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    
+    if (!formData.typeId) {
+      newErrors.typeId = 'Ticket type is required';
+    }
+    
+    if (!formData.stateId) {
+      newErrors.stateId = 'Status is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!title.trim()) {
-      setError('Title is required');
-      return;
-    }
-    
-    if (!typeId) {
-      setError('Ticket type is required');
-      return;
-    }
-    
-    if (!stateId) {
-      setError('Status is required');
+    if (!validateForm()) {
       return;
     }
     
     // Make sure we have a priority
-    if (!priorityId && priorities.length > 0) {
+    if (!formData.priorityId && priorities.length > 0) {
       const mediumPriority = priorities.find(p => p.name === 'Medium');
-      setPriorityId(mediumPriority ? mediumPriority.id : priorities[0].id);
+      setFormData(prev => ({ 
+        ...prev, 
+        priorityId: mediumPriority ? mediumPriority.id : priorities[0].id 
+      }));
     }
     
     setLoading(true);
@@ -133,14 +187,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     
     try {
       const ticketData = {
-        title,
-        description,
-        typeId,
-        stateId,
-        assignedToUserId,
-        parentTicketId,
-        linkedTickets,
-        priorityId,
+        ...formData,
         lastModifiedDate: new Date().toISOString(),
         lastModifiedByUserId: currentUser?.uid, // Track who made the last modification
       };
@@ -178,11 +225,30 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showParentSearchResults, showLinkedSearchResults]);
+  
+  // Convert types to options for FormSelect
+  const typeOptions = types.map(type => ({
+    value: type.id,
+    label: type.name
+  }));
 
-  // Preload user display names for select options
-  useEffect(() => {
-    users.forEach(user => loadUserDisplayName(user.id));
-  }, [users, loadUserDisplayName]);
+  // Convert states to options for FormSelect
+  const stateOptions = states.map(state => ({
+    value: state.id,
+    label: state.name
+  }));
+
+  // Convert priorities to options for FormSelect
+  const priorityOptions = priorities.map(priority => ({
+    value: priority.id,
+    label: priority.name
+  }));
+
+  // Convert users to options for FormSelect
+  const userOptions = users.map(user => ({
+    value: user.id,
+    label: getUserDisplayName(user.id)
+  }));
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -192,20 +258,16 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         </div>
       )}
       
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-coffee-dark mb-1">
-          Title <span className="text-coffee-accent">*</span>
-        </label>
-        <input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
-          placeholder="Enter ticket title"
-          required
-        />
-      </div>
+      <FormInput
+        id="form-title"
+        name="title"
+        label="Title"
+        value={formData.title}
+        onChange={handleInputChange}
+        placeholder="Enter ticket title"
+        required={true}
+        error={errors.title}
+      />
       
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-coffee-dark mb-1">
@@ -213,8 +275,9 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         </label>
         <textarea
           id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
           rows={3}
           className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
           placeholder="Describe the ticket"
@@ -222,49 +285,33 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="type" className="block text-sm font-medium text-coffee-dark mb-1">
-            Type <span className="text-coffee-accent">*</span>
-          </label>
-          <select
-            id="type"
-            value={typeId}
-            onChange={(e) => setTypeId(e.target.value)}
-            className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
-            required
-          >
-            <option value="">Select a type</option>
-            {types.map(type => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FormSelect
+          id="typeId"
+          name="typeId"
+          label="Type"
+          value={formData.typeId}
+          onChange={handleInputChange}
+          options={typeOptions}
+          placeholder="Select a type"
+          required={true}
+          error={errors.typeId}
+        />
         
-        <div>
-          <label htmlFor="state" className="block text-sm font-medium text-coffee-dark mb-1">
-            Status <span className="text-coffee-accent">*</span>
-          </label>
-          <select
-            id="state"
-            value={stateId}
-            onChange={(e) => setStateId(e.target.value)}
-            className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
-            required
-          >
-            <option value="">Select a status</option>
-            {states.map(state => (
-              <option key={state.id} value={state.id}>
-                {state.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FormSelect
+          id="stateId"
+          name="stateId"
+          label="Status"
+          value={formData.stateId}
+          onChange={handleInputChange}
+          options={stateOptions}
+          placeholder="Select a status"
+          required={true}
+          error={errors.stateId}
+        />
       </div>
       
       <div>
-        <label htmlFor="assignee" className="block text-sm font-medium text-coffee-dark mb-1">
+        <label htmlFor="assignedToUserId" className="block text-sm font-medium text-coffee-dark mb-1">
           Assigned To
         </label>
         <div className="relative">
@@ -273,15 +320,16 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
               <FaUser className="h-5 w-5 text-coffee-medium" />
             </div>
             <select
-              id="assignee"
-              value={assignedToUserId}
-              onChange={(e) => setAssignedToUserId(e.target.value)}
+              id="assignedToUserId"
+              name="assignedToUserId"
+              value={formData.assignedToUserId}
+              onChange={handleInputChange}
               className="flex-grow p-2 border-0 focus:ring-0 focus:outline-none"
             >
               <option value="">Select user...</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>
-                  {getUserDisplayName(user.id)}
+              {userOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -293,24 +341,15 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
       </div>
 
       {/* Priority Field */}
-      <div>
-        <label htmlFor="priority" className="block text-sm font-medium text-coffee-dark mb-1">
-          Priority
-        </label>
-        <select
-          id="priority"
-          value={priorityId}
-          onChange={(e) => setPriorityId(e.target.value)}
-          className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
-        >
-          <option value="">Select a priority</option>
-          {priorities.map(priority => (
-            <option key={priority.id} value={priority.id}>
-              {priority.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <FormSelect
+        id="priorityId"
+        name="priorityId"
+        label="Priority"
+        value={formData.priorityId}
+        onChange={handleInputChange}
+        options={priorityOptions}
+        placeholder="Select a priority"
+      />
 
       {/* Parent Ticket Selection */}
       <div>
@@ -318,16 +357,16 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
           Parent Ticket
         </label>
         <div className="space-y-2">
-          {parentTicketId ? (
+          {formData.parentTicketId ? (
             <div className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
               <div>
                 <span className="font-medium text-coffee-dark">
-                  {getParentTicketDetails()?.title || `Ticket #${parentTicketId}`}
+                  {getParentTicketDetails()?.title || `Ticket #${formData.parentTicketId}`}
                 </span>
               </div>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="small"
                 onClick={clearParentTicket}
               >
@@ -387,9 +426,9 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
           Linked Tickets
         </label>
         <div className="space-y-2">
-          {linkedTickets.length > 0 && (
+          {formData.linkedTickets.length > 0 && (
             <div className="space-y-2 mb-2">
-              {linkedTickets.map(ticket => (
+              {formData.linkedTickets.map(ticket => (
                 <div key={ticket.id} className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
                   <div className="flex items-center">
                     <FaLink className="text-coffee-medium mr-2" />
@@ -397,7 +436,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
                   </div>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="small"
                     onClick={() => removeLinkedTicket(ticket.id)}
                   >
