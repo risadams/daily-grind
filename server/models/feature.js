@@ -83,7 +83,7 @@ const FeatureSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual field for progress tracking - calculated based on associated tickets
+// Virtual field for progress tracking - calculated based on associated tasks
 FeatureSchema.virtual('progress').get(function() {
   return {
     planned: 0, // to be calculated dynamically

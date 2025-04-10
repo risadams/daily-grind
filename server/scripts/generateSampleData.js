@@ -17,7 +17,7 @@ const LinkType = require('../models/linkType');
 const Feature = require('../models/feature');
 const Epic = require('../models/epic');
 const Sprint = require('../models/sprint');
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const Retrospective = require('../models/retrospective');
 
 // Configuration
@@ -44,7 +44,7 @@ const createdData = {
   features: [],
   epics: [],
   sprints: [],
-  tickets: [],
+  tasks: [],
   retrospectives: []
 };
 
@@ -96,11 +96,11 @@ async function startDataGeneration() {
     await generateFeatures();
     await generateEpics();
     await generateSprints();
-    await generateTickets();
+    await generateTasks();
     await generateRetrospectives();
     
-    // Update sprint tickets
-    await updateSprintTickets();
+    // Update sprint tasks
+    await updateSprintTasks();
     
     console.log('Sample data generation complete!');
     process.exit(0);
@@ -122,7 +122,7 @@ async function deleteAllData() {
   await Feature.deleteMany({});
   await Epic.deleteMany({});
   await Sprint.deleteMany({});
-  await Ticket.deleteMany({});
+  await Task.deleteMany({});
   await Retrospective.deleteMany({});
 }
 
@@ -310,10 +310,10 @@ async function generateLinkTypes() {
   console.log('Generating link types...');
   
   const defaultLinkTypes = [
-    { name: 'Blocks', description: 'This ticket blocks another ticket', inward: 'is blocked by', outward: 'blocks' },
-    { name: 'Relates to', description: 'Tickets are related', inward: 'relates to', outward: 'relates to' },
-    { name: 'Duplicates', description: 'This is a duplicate of another ticket', inward: 'is duplicated by', outward: 'duplicates' },
-    { name: 'Parent of', description: 'This ticket is a parent of another ticket', inward: 'is child of', outward: 'is parent of' }
+    { name: 'Blocks', description: 'This task blocks another task', inward: 'is blocked by', outward: 'blocks' },
+    { name: 'Relates to', description: 'Tasks are related', inward: 'relates to', outward: 'relates to' },
+    { name: 'Duplicates', description: 'This is a duplicate of another task', inward: 'is duplicated by', outward: 'duplicates' },
+    { name: 'Parent of', description: 'This task is a parent of another task', inward: 'is child of', outward: 'is parent of' }
   ];
   
   for (let linkType of defaultLinkTypes) {
@@ -456,19 +456,19 @@ async function generateSprints() {
   console.log(`Generated ${createdData.sprints.length} sprints`);
 }
 
-// Generate Tickets
-async function generateTickets() {
-  console.log('Generating tickets...');
+// Generate Tasks
+async function generateTasks() {
+  console.log('Generating tasks...');
   
-  const ticketTypes = [
+  const taskTypes = [
     'Bug', 'Feature', 'Task', 'Improvement', 'Technical Debt', 'Documentation'
   ];
   
   for (let i = 0; i < COUNT * 3; i++) {
-    const type = getRandomItem(ticketTypes);
+    const type = getRandomItem(taskTypes);
     const title = `[${type}] ${faker.company.bs()}`;
     
-    const ticket = new Ticket({
+    const task = new Task({
       title,
       description: faker.lorem.paragraphs(Math.floor(Math.random() * 3) + 1),
       status: getRandomItem(createdData.statuses)._id,
@@ -481,47 +481,47 @@ async function generateTickets() {
       reviewedBy: Math.random() > 0.7 ? getRandomItem(createdData.users)._id : null,
     });
     
-    // Add attachments to some tickets
+    // Add attachments to some tasks
     if (Math.random() > 0.7) {
-      ticket.attachments = [{
+      task.attachments = [{
         fileName: `attachment-${faker.lorem.word()}.pdf`,
         fileUrl: `https://example.com/files/attachment-${i}.pdf`,
         uploadedAt: new Date()
       }];
     }
     
-    createdData.tickets.push(await ticket.save());
+    createdData.tasks.push(await task.save());
   }
   
-  // Set up some ticket links
-  const linkCount = Math.min(COUNT * 2, createdData.tickets.length / 2);
+  // Set up some task links
+  const linkCount = Math.min(COUNT * 2, createdData.tasks.length / 2);
   for (let i = 0; i < linkCount; i++) {
-    const sourceTicket = getRandomItem(createdData.tickets);
-    let targetTicket;
+    const sourceTask = getRandomItem(createdData.tasks);
+    let targetTask;
     
-    // Make sure we don't link a ticket to itself
+    // Make sure we don't link a task to itself
     do {
-      targetTicket = getRandomItem(createdData.tickets);
-    } while (targetTicket._id.equals(sourceTicket._id));
+      targetTask = getRandomItem(createdData.tasks);
+    } while (targetTask._id.equals(sourceTask._id));
     
     const linkType = getRandomItem(createdData.linkTypes);
     
     // Only add the link if it doesn't already exist
-    if (!sourceTicket.links.some(l => 
-      l.linkedTicket.equals(targetTicket._id) && 
+    if (!sourceTask.links.some(l => 
+      l.linkedTask.equals(targetTask._id) && 
       l.linkType.equals(linkType._id))) {
       
-      sourceTicket.links.push({
-        linkedTicket: targetTicket._id,
+      sourceTask.links.push({
+        linkedTask: targetTask._id,
         linkType: linkType._id,
         createdAt: new Date()
       });
       
-      await sourceTicket.save();
+      await sourceTask.save();
     }
   }
   
-  console.log(`Generated ${createdData.tickets.length} tickets and ${linkCount} ticket links`);
+  console.log(`Generated ${createdData.tasks.length} tasks and ${linkCount} task links`);
 }
 
 // Generate Retrospectives
@@ -564,19 +564,19 @@ async function generateRetrospectives() {
   console.log(`Generated ${createdData.retrospectives.length} retrospectives`);
 }
 
-// Update Sprint Tickets
-async function updateSprintTickets() {
-  console.log('Updating sprint tickets...');
+// Update Sprint Tasks
+async function updateSprintTasks() {
+  console.log('Updating sprint tasks...');
   
-  // Assign tickets to sprints
+  // Assign tasks to sprints
   for (let sprint of createdData.sprints) {
-    // Different distribution of tickets based on sprint status
-    let ticketsToAssign = [];
+    // Different distribution of tasks based on sprint status
+    let tasksToAssign = [];
     
     switch (sprint.status) {
       case 'completed':
-        // For completed sprints, mostly done tickets 
-        ticketsToAssign = createdData.tickets
+        // For completed sprints, mostly done tasks 
+        tasksToAssign = createdData.tasks
           .filter(t => !t.sprints.length && 
                 Math.random() > 0.7 && 
                 (t.status.toString() === createdData.statuses.find(s => s.name === 'Done')._id.toString()))
@@ -584,15 +584,15 @@ async function updateSprintTickets() {
         break;
       
       case 'active':
-        // For active sprint, tickets in various statuses
-        ticketsToAssign = createdData.tickets
+        // For active sprint, tasks in various statuses
+        tasksToAssign = createdData.tasks
           .filter(t => !t.sprints.length && Math.random() > 0.5)
           .slice(0, Math.floor(Math.random() * 15) + 10);
         break;
       
       case 'planning':
-        // For future sprints, mostly backlog and todo tickets
-        ticketsToAssign = createdData.tickets
+        // For future sprints, mostly backlog and todo tasks
+        tasksToAssign = createdData.tasks
           .filter(t => !t.sprints.length && 
                 Math.random() > 0.8 && 
                 (t.status.toString() === createdData.statuses.find(s => s.name === 'Backlog')?._id.toString() ||
@@ -601,32 +601,32 @@ async function updateSprintTickets() {
         break;
     }
     
-    // Add tickets to sprint
-    for (let ticket of ticketsToAssign) {
-      ticket.sprints.push(sprint._id);
-      await ticket.save();
+    // Add tasks to sprint
+    for (let task of tasksToAssign) {
+      task.sprints.push(sprint._id);
+      await task.save();
     }
     
-    // Update sprint tickets array and velocity for completed sprints
-    const sprintTickets = createdData.tickets.filter(t => 
+    // Update sprint tasks array and velocity for completed sprints
+    const sprintTasks = createdData.tasks.filter(t => 
       t.sprints.some(s => s.toString() === sprint._id.toString())
     );
     
-    sprint.tickets = sprintTickets.map(t => t._id);
+    sprint.tasks = sprintTasks.map(t => t._id);
     
     if (sprint.status === 'completed') {
-      // Calculate sprint velocity based on completed tickets
+      // Calculate sprint velocity based on completed tasks
       const doneStatus = createdData.statuses.find(s => s.name === 'Done')?._id.toString();
-      const completedTickets = sprintTickets.filter(t => 
+      const completedTasks = sprintTasks.filter(t => 
         t.status.toString() === doneStatus
       );
-      sprint.velocity = completedTickets.reduce((total, ticket) => total + (ticket.storyPoints || 0), 0);
+      sprint.velocity = completedTasks.reduce((total, task) => total + (task.storyPoints || 0), 0);
     }
     
     await sprint.save();
   }
   
-  console.log('Updated sprint tickets and velocity');
+  console.log('Updated sprint tasks and velocity');
 }
 
 // Run the script

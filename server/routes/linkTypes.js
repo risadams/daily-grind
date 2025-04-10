@@ -99,13 +99,13 @@ router.delete('/:id', authenticateJWT, isAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Link type not found' });
     }
 
-    // Check if any tickets are using this link type
-    const Ticket = require('../models/ticket');
-    const ticketsUsingLinkType = await Ticket.countDocuments({ 'links.linkType': req.params.id });
-    if (ticketsUsingLinkType > 0) {
+    // Check if any tasks are using this link type
+    const Task = require('../models/task');
+    const tasksUsingLinkType = await Task.countDocuments({ 'links.linkType': req.params.id });
+    if (tasksUsingLinkType > 0) {
       return res.status(400).json({ 
-        message: 'Cannot delete: this link type is being used in ticket links',
-        ticketCount: ticketsUsingLinkType
+        message: 'Cannot delete: this link type is being used in task links',
+        taskCount: tasksUsingLinkType
       });
     }
 

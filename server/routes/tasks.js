@@ -1,46 +1,46 @@
 const express = require('express');
 const router = express.Router();
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const { authenticateJWT } = require('../middleware/auth');
 const { upload, getFileUrl, deleteFile } = require('../utils/fileUpload');
 
-// Get all tickets
+// Get all tasks
 router.get('/', authenticateJWT, async (req, res) => {
   try {
-    const tickets = await Ticket.find()
+    const tasks = await Task.find()
       .populate('createdBy', 'displayName email photoURL')
       .populate('assignedTo', 'displayName email photoURL')
       .sort({ createdAt: -1 });
     
-    res.json(tickets);
+    res.json(tasks);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching tickets', error: error.message });
+    res.status(500).json({ message: 'Error fetching tasks', error: error.message });
   }
 });
 
-// Get ticket by ID
+// Get task by ID
 router.get('/:id', authenticateJWT, async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id)
+    const task = await Task.findById(req.params.id)
       .populate('createdBy', 'displayName email photoURL')
       .populate('assignedTo', 'displayName email photoURL');
     
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
-    res.json(ticket);
+    res.json(task);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching ticket', error: error.message });
+    res.status(500).json({ message: 'Error fetching task', error: error.message });
   }
 });
 
-// Create new ticket
+// Create new task
 router.post('/', authenticateJWT, async (req, res) => {
   try {
     const { title, description, priority, status } = req.body;
     
-    const newTicket = new Ticket({
+    const newTask = new Task({
       title,
       description,
       priority: priority || 'medium',
@@ -48,24 +48,24 @@ router.post('/', authenticateJWT, async (req, res) => {
       createdBy: req.user._id
     });
     
-    await newTicket.save();
+    await newTask.save();
     
     // Populate user data before returning
-    const populatedTicket = await Ticket.findById(newTicket._id)
+    const populatedTask = await Task.findById(newTask._id)
       .populate('createdBy', 'displayName email photoURL');
     
-    res.status(201).json(populatedTicket);
+    res.status(201).json(populatedTask);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating ticket', error: error.message });
+    res.status(500).json({ message: 'Error creating task', error: error.message });
   }
 });
 
-// Update ticket
+// Update task
 router.put('/:id', authenticateJWT, async (req, res) => {
   try {
     const { title, description, status, priority, assignedTo } = req.body;
     
-    const updatedTicket = await Ticket.findByIdAndUpdate(
+    const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
       {
         title,
@@ -80,83 +80,83 @@ router.put('/:id', authenticateJWT, async (req, res) => {
     .populate('createdBy', 'displayName email photoURL')
     .populate('assignedTo', 'displayName email photoURL');
     
-    if (!updatedTicket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    if (!updatedTask) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
-    res.json(updatedTicket);
+    res.json(updatedTask);
   } catch (error) {
-    res.status(500).json({ message: 'Error updating ticket', error: error.message });
+    res.status(500).json({ message: 'Error updating task', error: error.message });
   }
 });
 
-// Delete ticket
+// Delete task
 router.delete('/:id', authenticateJWT, async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id);
+    const task = await Task.findById(req.params.id);
     
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
     // Delete any attached files
-    if (ticket.attachments && ticket.attachments.length > 0) {
-      ticket.attachments.forEach(attachment => {
+    if (task.attachments && task.attachments.length > 0) {
+      task.attachments.forEach(attachment => {
         const filename = attachment.fileUrl.split('/').pop();
         deleteFile(filename);
       });
     }
     
-    await Ticket.findByIdAndDelete(req.params.id);
+    await Task.findByIdAndDelete(req.params.id);
     
-    res.json({ message: 'Ticket deleted successfully' });
+    res.json({ message: 'Task deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting ticket', error: error.message });
+    res.status(500).json({ message: 'Error deleting task', error: error.message });
   }
 });
 
-// Add attachment to ticket
+// Add attachment to task
 router.post('/:id/attachments', authenticateJWT, upload.single('attachment'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
     
-    const ticket = await Ticket.findById(req.params.id);
+    const task = await Task.findById(req.params.id);
     
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
     const fileUrl = getFileUrl(req.file.filename);
     
-    // Add attachment to ticket
-    ticket.attachments.push({
+    // Add attachment to task
+    task.attachments.push({
       fileName: req.file.originalname,
       fileUrl: fileUrl,
       uploadedAt: Date.now()
     });
     
-    ticket.updatedAt = Date.now();
-    await ticket.save();
+    task.updatedAt = Date.now();
+    await task.save();
     
-    res.status(201).json(ticket);
+    res.status(201).json(task);
   } catch (error) {
     res.status(500).json({ message: 'Error adding attachment', error: error.message });
   }
 });
 
-// Remove attachment from ticket
+// Remove attachment from task
 router.delete('/:id/attachments/:attachmentId', authenticateJWT, async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id);
+    const task = await Task.findById(req.params.id);
     
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
     // Find attachment
-    const attachment = ticket.attachments.id(req.params.attachmentId);
+    const attachment = task.attachments.id(req.params.attachmentId);
     
     if (!attachment) {
       return res.status(404).json({ message: 'Attachment not found' });
@@ -166,12 +166,12 @@ router.delete('/:id/attachments/:attachmentId', authenticateJWT, async (req, res
     const filename = attachment.fileUrl.split('/').pop();
     deleteFile(filename);
     
-    // Remove attachment from ticket
-    ticket.attachments.pull(req.params.attachmentId);
-    ticket.updatedAt = Date.now();
-    await ticket.save();
+    // Remove attachment from task
+    task.attachments.pull(req.params.attachmentId);
+    task.updatedAt = Date.now();
+    await task.save();
     
-    res.json(ticket);
+    res.json(task);
   } catch (error) {
     res.status(500).json({ message: 'Error removing attachment', error: error.message });
   }

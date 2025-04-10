@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useDatabase } from '../context/DatabaseContext.js';
 import PageHeader from '../components/PageHeader.js';
-import TicketCard from '../components/TicketCard.js';
+import TaskCard from '../components/TaskCard.js';
 
 export default function BacklogPage() {
   // Access database context
-  const { allTickets, states, updateTicket, loading } = useDatabase();
+  const { allTasks, states, updateTask, loading } = useDatabase();
   
   // Track component mount status
   const isMounted = useRef(true);
@@ -18,7 +18,7 @@ export default function BacklogPage() {
   const [columnToStateMap, setColumnToStateMap] = useState({});
   const [swimlanes, setSwimlanes] = useState({});
   const [isDragDropEnabled, setIsDragDropEnabled] = useState(false);
-  const [tickets, setTickets] = useState([]);
+  const [tasks, setTasks] = useState([]);
   
   // Set up component mount/unmount tracking
   useEffect(() => {
@@ -29,18 +29,18 @@ export default function BacklogPage() {
     };
   }, []);
   
-  // Initialize tickets from context - convert IDs to strings for consistency
+  // Initialize tasks from context - convert IDs to strings for consistency
   useEffect(() => {
-    if (!allTickets || !isMounted.current) return;
+    if (!allTasks || !isMounted.current) return;
     
-    // Ensure all ticket IDs are strings for consistency
-    const formattedTickets = allTickets.map(ticket => ({
-      ...ticket,
-      id: String(ticket.id)
+    // Ensure all task IDs are strings for consistency
+    const formattedTasks = allTasks.map(task => ({
+      ...task,
+      id: String(task.id)
     }));
     
-    setTickets(formattedTickets);
-  }, [allTickets]);
+    setTasks(formattedTasks);
+  }, [allTasks]);
   
   // Initialize board structure based on states from DB
   useEffect(() => {
@@ -113,7 +113,7 @@ export default function BacklogPage() {
     standardColumns.forEach(column => {
       newColumns[column.id] = {
         ...column,
-        tickets: [],
+        tasks: [],
         stateIds: []
       };
       newColumnOrder.push(column.id);
@@ -122,7 +122,7 @@ export default function BacklogPage() {
       if (column.hasSwimLanes && column.swimLanes) {
         newSwimlanes[column.id] = column.swimLanes.map(lane => ({
           ...lane,
-          tickets: [],
+          tasks: [],
           stateIds: []
         }));
       }
@@ -219,9 +219,9 @@ export default function BacklogPage() {
     }
   }, [states]);
   
-  // Organize tickets into columns when tickets change
+  // Organize tasks into columns when tasks change
   useEffect(() => {
-    if (!tickets.length || !Object.keys(stateToColumnMap).length || !Object.keys(columns).length || !isMounted.current || loading) {
+    if (!tasks.length || !Object.keys(stateToColumnMap).length || !Object.keys(columns).length || !isMounted.current || loading) {
       return;
     }
     
@@ -229,22 +229,22 @@ export default function BacklogPage() {
     const newColumns = JSON.parse(JSON.stringify(columns));
     const newSwimlanes = JSON.parse(JSON.stringify(swimlanes));
     
-    // Reset tickets for all columns and swimlanes
+    // Reset tasks for all columns and swimlanes
     Object.keys(newColumns).forEach(columnId => {
-      newColumns[columnId].tickets = [];
+      newColumns[columnId].tasks = [];
       
-      // Reset tickets for swimlanes if they exist for this column
+      // Reset tasks for swimlanes if they exist for this column
       if (newSwimlanes[columnId]) {
         newSwimlanes[columnId].forEach(lane => {
-          lane.tickets = [];
+          lane.tasks = [];
         });
       }
     });
     
-    // Add tickets to appropriate columns and swimlanes based on their state
-    tickets.forEach(ticket => {
-      const safeTicket = { ...ticket, id: String(ticket.id) };
-      const mapping = stateToColumnMap[ticket.stateId];
+    // Add tasks to appropriate columns and swimlanes based on their state
+    tasks.forEach(task => {
+      const safeTask = { ...task, id: String(task.id) };
+      const mapping = stateToColumnMap[task.stateId];
       
       if (mapping) {
         const { columnId, swimLaneId } = mapping;
@@ -253,23 +253,23 @@ export default function BacklogPage() {
           if (swimLaneId && newSwimlanes[columnId]) {
             const laneIndex = newSwimlanes[columnId].findIndex(lane => lane.id === swimLaneId);
             if (laneIndex !== -1) {
-              // Add ticket to the appropriate swimlane
-              newSwimlanes[columnId][laneIndex].tickets.push(safeTicket);
+              // Add task to the appropriate swimlane
+              newSwimlanes[columnId][laneIndex].tasks.push(safeTask);
             } else {
-              // Fallback: add to column's tickets if swimlane not found
-              newColumns[columnId].tickets.push(safeTicket);
+              // Fallback: add to column's tasks if swimlane not found
+              newColumns[columnId].tasks.push(safeTask);
             }
           } else {
-            // Add to column's tickets for regular columns
-            newColumns[columnId].tickets.push(safeTicket);
+            // Add to column's tasks for regular columns
+            newColumns[columnId].tasks.push(safeTask);
           }
         } else if (newColumns.backlog) {
           // Fallback: add to backlog if column not found
-          newColumns.backlog.tickets.push(safeTicket);
+          newColumns.backlog.tasks.push(safeTask);
         }
       } else if (newColumns.backlog) {
         // Fallback: add to backlog if no mapping found
-        newColumns.backlog.tickets.push(safeTicket);
+        newColumns.backlog.tasks.push(safeTask);
       }
     });
     
@@ -280,7 +280,7 @@ export default function BacklogPage() {
       // Enable drag and drop after columns are populated
       setIsDragDropEnabled(true);
     }
-  }, [tickets, stateToColumnMap, loading]);
+  }, [tasks, stateToColumnMap, loading]);
   
   // Handle drag and drop events
   const onDragEnd = useCallback(async (result) => {
@@ -293,11 +293,11 @@ export default function BacklogPage() {
 
     console.log("Drag completed with ID:", draggableId);
     
-    // Find the ticket that was dragged
-    const movedTicket = tickets.find(t => String(t.id) === draggableId);
+    // Find the task that was dragged
+    const movedTask = tasks.find(t => String(t.id) === draggableId);
     
-    if (!movedTicket) {
-      console.error('Could not find the dragged ticket with ID:', draggableId);
+    if (!movedTask) {
+      console.error('Could not find the dragged task with ID:', draggableId);
       return;
     }
     
@@ -321,38 +321,38 @@ export default function BacklogPage() {
     const newColumns = JSON.parse(JSON.stringify(columns));
     const newSwimlanes = JSON.parse(JSON.stringify(swimlanes));
     
-    // Remove ticket from source
+    // Remove task from source
     if (sourceInfo.isSwimLane) {
       const sourceLaneIndex = newSwimlanes[sourceInfo.columnId].findIndex(
         lane => lane.id === sourceInfo.swimlaneId
       );
       if (sourceLaneIndex !== -1) {
-        newSwimlanes[sourceInfo.columnId][sourceLaneIndex].tickets = 
-          newSwimlanes[sourceInfo.columnId][sourceLaneIndex].tickets.filter(
+        newSwimlanes[sourceInfo.columnId][sourceLaneIndex].tasks = 
+          newSwimlanes[sourceInfo.columnId][sourceLaneIndex].tasks.filter(
             t => String(t.id) !== draggableId
           );
       }
     } else {
-      newColumns[sourceInfo.columnId].tickets = 
-        newColumns[sourceInfo.columnId].tickets.filter(
+      newColumns[sourceInfo.columnId].tasks = 
+        newColumns[sourceInfo.columnId].tasks.filter(
           t => String(t.id) !== draggableId
         );
     }
     
-    // Add ticket to destination
+    // Add task to destination
     if (destinationInfo.isSwimLane) {
       const destLaneIndex = newSwimlanes[destinationInfo.columnId].findIndex(
         lane => lane.id === destinationInfo.swimlaneId
       );
       if (destLaneIndex !== -1) {
-        const destTickets = [...newSwimlanes[destinationInfo.columnId][destLaneIndex].tickets];
-        destTickets.splice(destination.index, 0, movedTicket);
-        newSwimlanes[destinationInfo.columnId][destLaneIndex].tickets = destTickets;
+        const destTasks = [...newSwimlanes[destinationInfo.columnId][destLaneIndex].tasks];
+        destTasks.splice(destination.index, 0, movedTask);
+        newSwimlanes[destinationInfo.columnId][destLaneIndex].tasks = destTasks;
       }
     } else {
-      const destTickets = [...newColumns[destinationInfo.columnId].tickets];
-      destTickets.splice(destination.index, 0, movedTicket);
-      newColumns[destinationInfo.columnId].tickets = destTickets;
+      const destTasks = [...newColumns[destinationInfo.columnId].tasks];
+      destTasks.splice(destination.index, 0, movedTask);
+      newColumns[destinationInfo.columnId].tasks = destTasks;
     }
     
     // Update state first to maintain responsive UI
@@ -361,18 +361,18 @@ export default function BacklogPage() {
       setSwimlanes(newSwimlanes);
     }
     
-    // Update ticket state
+    // Update task state
     const newStateId = columnToStateMap[destination.droppableId];
     if (newStateId) {
       try {
-        // Make sure the ticket has stateId updated
-        await updateTicket(movedTicket.id, { stateId: newStateId });
-        console.log(`Updated ticket ${movedTicket.id} to state ${newStateId}`);
+        // Make sure the task has stateId updated
+        await updateTask(movedTask.id, { stateId: newStateId });
+        console.log(`Updated task ${movedTask.id} to state ${newStateId}`);
         
-        // Update the local tickets array as well
+        // Update the local tasks array as well
         if (isMounted.current) {
-          setTickets(prevTickets => 
-            prevTickets.map(t => 
+          setTasks(prevTasks => 
+            prevTasks.map(t => 
               String(t.id) === draggableId 
                 ? { ...t, stateId: newStateId } 
                 : t
@@ -380,10 +380,10 @@ export default function BacklogPage() {
           );
         }
       } catch (error) {
-        console.error('Error updating ticket state:', error);
+        console.error('Error updating task state:', error);
       }
     }
-  }, [tickets, columns, swimlanes, columnToStateMap, updateTicket]);
+  }, [tasks, columns, swimlanes, columnToStateMap, updateTask]);
 
   // Generate backlog board content based on data and loading state
   const renderBoardContent = () => {
@@ -391,12 +391,12 @@ export default function BacklogPage() {
       return (
         <div className="flex flex-col items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coffee-dark"></div>
-          <p className="mt-4 text-coffee-dark font-medium">Brewing your tickets...</p>
+          <p className="mt-4 text-coffee-dark font-medium">Brewing your tasks...</p>
         </div>
       );
     }
     
-    if (!tickets || tickets.length === 0) {
+    if (!tasks || tasks.length === 0) {
       return (
         <div className="mt-8 text-center py-12 bg-white rounded-xl shadow-coffee">
           <div className="mx-auto h-24 w-24 rounded-full bg-coffee-light flex items-center justify-center">
@@ -405,8 +405,8 @@ export default function BacklogPage() {
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <h3 className="mt-4 text-xl font-display font-bold text-coffee-dark">No tickets found</h3>
-          <p className="mt-2 text-coffee-medium max-w-md mx-auto">Create some tickets from the Dashboard to start organizing your work.</p>
+          <h3 className="mt-4 text-xl font-display font-bold text-coffee-dark">No tasks found</h3>
+          <p className="mt-2 text-coffee-medium max-w-md mx-auto">Create some tasks from the Dashboard to start organizing your work.</p>
         </div>
       );
     }
@@ -430,11 +430,11 @@ export default function BacklogPage() {
                   </h3>
                   {column.hasSwimLanes ? (
                     <span className="ml-auto bg-white text-coffee-dark text-sm font-medium px-2 py-1 rounded-full shadow-sm">
-                      {swimlanes[columnId]?.reduce((count, lane) => count + lane.tickets.length, 0) || 0}
+                      {swimlanes[columnId]?.reduce((count, lane) => count + lane.tasks.length, 0) || 0}
                     </span>
                   ) : (
                     <span className="ml-auto bg-white text-coffee-dark text-sm font-medium px-2 py-1 rounded-full shadow-sm">
-                      {column.tickets.length}
+                      {column.tasks.length}
                     </span>
                   )}
                 </div>
@@ -452,7 +452,7 @@ export default function BacklogPage() {
                             {lane.title}
                           </h4>
                           <span className="ml-auto text-xs text-gray-400">
-                            {lane.tickets.length}
+                            {lane.tasks.length}
                           </span>
                         </div>
                         
@@ -468,10 +468,10 @@ export default function BacklogPage() {
                               }`}
                             >
                               <div className="space-y-3">
-                                {lane.tickets.map((ticket, index) => (
+                                {lane.tasks.map((task, index) => (
                                   <Draggable 
-                                    key={String(ticket.id)} 
-                                    draggableId={String(ticket.id)} 
+                                    key={String(task.id)} 
+                                    draggableId={String(task.id)} 
                                     index={index}
                                   >
                                     {(provided, snapshot) => (
@@ -485,7 +485,7 @@ export default function BacklogPage() {
                                             : ''
                                         }`}
                                       >
-                                        <TicketCard ticket={ticket} />
+                                        <TaskCard task={task} />
                                       </div>
                                     )}
                                   </Draggable>
@@ -493,9 +493,9 @@ export default function BacklogPage() {
                               </div>
                               {provided.placeholder}
                               
-                              {lane.tickets.length === 0 && (
+                              {lane.tasks.length === 0 && (
                                 <div className="flex items-center justify-center h-[40px] text-center opacity-50">
-                                  <p className="text-xs text-gray-400">Drop tickets here</p>
+                                  <p className="text-xs text-gray-400">Drop tasks here</p>
                                 </div>
                               )}
                             </div>
@@ -518,10 +518,10 @@ export default function BacklogPage() {
                         }`}
                       >
                         <div className="space-y-3">
-                          {column.tickets.map((ticket, index) => (
+                          {column.tasks.map((task, index) => (
                             <Draggable 
-                              key={String(ticket.id)} 
-                              draggableId={String(ticket.id)} 
+                              key={String(task.id)} 
+                              draggableId={String(task.id)} 
                               index={index}
                             >
                               {(provided, snapshot) => (
@@ -535,7 +535,7 @@ export default function BacklogPage() {
                                       : ''
                                   }`}
                                 >
-                                  <TicketCard ticket={ticket} />
+                                  <TaskCard task={task} />
                                 </div>
                               )}
                             </Draggable>
@@ -543,13 +543,13 @@ export default function BacklogPage() {
                         </div>
                         {provided.placeholder}
                         
-                        {column.tickets.length === 0 && (
+                        {column.tasks.length === 0 && (
                           <div className="flex flex-col items-center justify-center h-full text-center opacity-50">
                             <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
                                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
-                            <p className="text-sm text-gray-500">Drop tickets here</p>
+                            <p className="text-sm text-gray-500">Drop tasks here</p>
                           </div>
                         )}
                       </div>
@@ -578,7 +578,7 @@ export default function BacklogPage() {
                   {column.title} 
                 </h3>
                 <span className="ml-auto bg-white text-coffee-dark text-sm font-medium px-2 py-1 rounded-full shadow-sm">
-                  {column.tickets?.length || 0}
+                  {column.tasks?.length || 0}
                 </span>
               </div>
               
@@ -611,7 +611,7 @@ export default function BacklogPage() {
             <span>Backlog Brewing</span>
           </div>
         }
-        subtitle="Drag tickets between columns to update their status"
+        subtitle="Drag tasks between columns to update their status"
       />
       
       {renderBoardContent()}

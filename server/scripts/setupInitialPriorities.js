@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Priority = require('../models/priority');
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const connectToMongoDB = require('../config/mongodb/connection');
 
 // Initial priority definitions
@@ -55,15 +55,15 @@ async function setupInitialPriorities() {
       }
     }
 
-    // Get default "Medium" priority for updating existing tickets
+    // Get default "Medium" priority for updating existing tasks
     const defaultPriority = await Priority.findOne({ name: 'Medium' });
     
     if (defaultPriority) {
-      // Update any existing tickets with string priorities to use the new priority reference
-      const ticketCount = await Ticket.countDocuments({ priority: { $type: 'string' } });
+      // Update any existing tasks with string priorities to use the new priority reference
+      const taskCount = await Task.countDocuments({ priority: { $type: 'string' } });
       
-      if (ticketCount > 0) {
-        console.log(`Updating ${ticketCount} tickets with string priority to use priority reference`);
+      if (taskCount > 0) {
+        console.log(`Updating ${taskCount} tasks with string priority to use priority reference`);
         
         const priorityMappings = {
           'low': priorityMap['low'],
@@ -72,18 +72,18 @@ async function setupInitialPriorities() {
           'urgent': priorityMap['urgent']
         };
 
-        // Update tickets with priorityMappings if they exist, otherwise use default
+        // Update tasks with priorityMappings if they exist, otherwise use default
         for (const [stringPriority, priorityId] of Object.entries(priorityMappings)) {
           if (priorityId) {
-            await Ticket.updateMany(
+            await Task.updateMany(
               { priority: stringPriority },
               { $set: { priority: priorityId } }
             );
           }
         }
         
-        // Update any remaining tickets with string priority to default
-        await Ticket.updateMany(
+        // Update any remaining tasks with string priority to default
+        await Task.updateMany(
           { priority: { $type: 'string' } },
           { $set: { priority: defaultPriority._id } }
         );

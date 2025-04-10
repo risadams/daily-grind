@@ -95,8 +95,8 @@ const ResourceCard = ({ title, description, icon, link }) => {
   );
 };
 
-// Support ticket form
-const SupportTicketForm = () => {
+// Support task form
+const SupportTaskForm = () => {
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -124,7 +124,7 @@ const SupportTicketForm = () => {
     return (
       <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl p-8 text-center">
         <FaCheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-        <h3 className="text-xl font-bold mb-2">Support Ticket Received!</h3>
+        <h3 className="text-xl font-bold mb-2">Support Task Received!</h3>
         <p className="mb-4">
           Thanks for contacting us. Our support team will get back to you within 24 hours.
         </p>
@@ -243,7 +243,7 @@ const SupportPage = () => {
     {
       id: 1,
       question: "How do I create my first sprint in Daily Grind?",
-      answer: "To create your first sprint, navigate to the Sprint Planning section from your dashboard. Click on 'Create Sprint', set the sprint duration, add tickets from your backlog, and click 'Start Sprint'. You can then manage your sprint from the Sprint Board."
+      answer: "To create your first sprint, navigate to the Sprint Planning section from your dashboard. Click on 'Create Sprint', set the sprint duration, add tasks from your backlog, and click 'Start Sprint'. You can then manage your sprint from the Sprint Board."
     },
     {
       id: 2,
@@ -459,9 +459,9 @@ const SupportPage = () => {
               
               <div className="bg-white rounded-xl shadow-coffee p-6 md:p-8">
                 <h3 className="text-2xl font-bold font-display text-coffee-espresso mb-6">
-                  Submit a Support Ticket
+                  Submit a Support Task
                 </h3>
-                <SupportTicketForm />
+                <SupportTaskForm />
               </div>
               
               <div className="mt-12 bg-coffee-light/20 rounded-xl p-6 md:p-8">

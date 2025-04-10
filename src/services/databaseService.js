@@ -10,54 +10,54 @@ const initializeAxios = () => {
   }
 };
 
-// Tickets API
-const getTickets = async () => {
+// Tasks API
+const getTasks = async () => {
   initializeAxios();
   try {
-    const response = await axios.get(`${API_URL}/tickets`);
+    const response = await axios.get(`${API_URL}/tasks`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to fetch tickets');
+    throw new Error(error.response?.data?.message || 'Failed to fetch tasks');
   }
 };
 
-const getTicketById = async (id) => {
+const getTaskById = async (id) => {
   initializeAxios();
   try {
-    const response = await axios.get(`${API_URL}/tickets/${id}`);
+    const response = await axios.get(`${API_URL}/tasks/${id}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to fetch ticket');
+    throw new Error(error.response?.data?.message || 'Failed to fetch task');
   }
 };
 
-const createTicket = async (ticketData) => {
+const createTask = async (taskData) => {
   initializeAxios();
   try {
-    const response = await axios.post(`${API_URL}/tickets`, ticketData);
+    const response = await axios.post(`${API_URL}/tasks`, taskData);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to create ticket');
+    throw new Error(error.response?.data?.message || 'Failed to create task');
   }
 };
 
-const updateTicket = async (id, ticketData) => {
+const updateTask = async (id, taskData) => {
   initializeAxios();
   try {
-    const response = await axios.put(`${API_URL}/tickets/${id}`, ticketData);
+    const response = await axios.put(`${API_URL}/tasks/${id}`, taskData);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to update ticket');
+    throw new Error(error.response?.data?.message || 'Failed to update task');
   }
 };
 
-const deleteTicket = async (id) => {
+const deleteTask = async (id) => {
   initializeAxios();
   try {
-    const response = await axios.delete(`${API_URL}/tickets/${id}`);
+    const response = await axios.delete(`${API_URL}/tasks/${id}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || 'Failed to delete ticket');
+    throw new Error(error.response?.data?.message || 'Failed to delete task');
   }
 };
 
@@ -143,14 +143,14 @@ const removeTeamMember = async (teamId, userId) => {
 };
 
 // File Attachments API
-const addAttachment = async (ticketId, file) => {
+const addAttachment = async (taskId, file) => {
   initializeAxios();
   try {
     const formData = new FormData();
     formData.append('attachment', file);
     
     const response = await axios.post(
-      `${API_URL}/tickets/${ticketId}/attachments`,
+      `${API_URL}/tasks/${taskId}/attachments`,
       formData,
       {
         headers: {
@@ -165,10 +165,10 @@ const addAttachment = async (ticketId, file) => {
   }
 };
 
-const removeAttachment = async (ticketId, attachmentId) => {
+const removeAttachment = async (taskId, attachmentId) => {
   initializeAxios();
   try {
-    const response = await axios.delete(`${API_URL}/tickets/${ticketId}/attachments/${attachmentId}`);
+    const response = await axios.delete(`${API_URL}/tasks/${taskId}/attachments/${attachmentId}`);
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Failed to remove attachment');
@@ -190,7 +190,7 @@ const getStatuses = async () => {
         } catch (innerErr) {
           if (innerErr.response?.status === 404) {
             // Try alternative endpoints
-            response = await axios.get(`${API_URL}/ticket/statuses`);
+            response = await axios.get(`${API_URL}/task/statuses`);
           } else {
             throw innerErr;
           }
@@ -202,25 +202,25 @@ const getStatuses = async () => {
     return response.data;
   } catch (error) {
     console.error('Failed to fetch statuses:', error);
-    // Try to construct statuses from tickets if API fails
+    // Try to construct statuses from tasks if API fails
     try {
-      const tickets = await getTickets();
-      if (tickets && tickets.length > 0) {
-        // Extract unique status objects from tickets
+      const tasks = await getTasks();
+      if (tasks && tasks.length > 0) {
+        // Extract unique status objects from tasks
         const uniqueStatuses = {};
-        tickets.forEach(ticket => {
-          if (ticket.status && typeof ticket.status === 'object' && ticket.status._id) {
-            uniqueStatuses[ticket.status._id] = ticket.status;
+        tasks.forEach(task => {
+          if (task.status && typeof task.status === 'object' && task.status._id) {
+            uniqueStatuses[task.status._id] = task.status;
           }
         });
         const extractedStatuses = Object.values(uniqueStatuses);
         if (extractedStatuses.length > 0) {
-          console.log('Using status data extracted from tickets:', extractedStatuses);
+          console.log('Using status data extracted from tasks:', extractedStatuses);
           return extractedStatuses;
         }
       }
     } catch (extractError) {
-      console.error('Failed to extract statuses from tickets:', extractError);
+      console.error('Failed to extract statuses from tasks:', extractError);
     }
     
     throw new Error(error.response?.data?.message || 'Failed to fetch statuses');
@@ -242,7 +242,7 @@ const getPriorities = async () => {
         } catch (innerErr) {
           if (innerErr.response?.status === 404) {
             // Try alternative endpoints
-            response = await axios.get(`${API_URL}/ticket/priorities`);
+            response = await axios.get(`${API_URL}/task/priorities`);
           } else {
             throw innerErr;
           }
@@ -254,25 +254,25 @@ const getPriorities = async () => {
     return response.data;
   } catch (error) {
     console.error('Failed to fetch priorities:', error);
-    // Try to construct priorities from tickets if API fails
+    // Try to construct priorities from tasks if API fails
     try {
-      const tickets = await getTickets();
-      if (tickets && tickets.length > 0) {
-        // Extract unique priority objects from tickets
+      const tasks = await getTasks();
+      if (tasks && tasks.length > 0) {
+        // Extract unique priority objects from tasks
         const uniquePriorities = {};
-        tickets.forEach(ticket => {
-          if (ticket.priority && typeof ticket.priority === 'object' && ticket.priority._id) {
-            uniquePriorities[ticket.priority._id] = ticket.priority;
+        tasks.forEach(task => {
+          if (task.priority && typeof task.priority === 'object' && task.priority._id) {
+            uniquePriorities[task.priority._id] = task.priority;
           }
         });
         const extractedPriorities = Object.values(uniquePriorities);
         if (extractedPriorities.length > 0) {
-          console.log('Using priority data extracted from tickets:', extractedPriorities);
+          console.log('Using priority data extracted from tasks:', extractedPriorities);
           return extractedPriorities;
         }
       }
     } catch (extractError) {
-      console.error('Failed to extract priorities from tickets:', extractError);
+      console.error('Failed to extract priorities from tasks:', extractError);
     }
     
     throw new Error(error.response?.data?.message || 'Failed to fetch priorities');
@@ -280,11 +280,11 @@ const getPriorities = async () => {
 };
 
 const databaseService = {
-  getTickets,
-  getTicketById,
-  createTicket,
-  updateTicket,
-  deleteTicket,
+  getTasks,
+  getTaskById,
+  createTask,
+  updateTask,
+  deleteTask,
   addAttachment,
   removeAttachment,
   getTeams,

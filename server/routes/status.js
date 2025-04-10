@@ -108,13 +108,13 @@ router.delete('/:id', authenticateJWT, isAdmin, async (req, res) => {
       });
     }
 
-    // Check if any tickets are using this status
-    const Ticket = require('../models/ticket');
-    const ticketsUsingStatus = await Ticket.countDocuments({ status: req.params.id });
-    if (ticketsUsingStatus > 0) {
+    // Check if any tasks are using this status
+    const Task = require('../models/task');
+    const tasksUsingStatus = await Task.countDocuments({ status: req.params.id });
+    if (tasksUsingStatus > 0) {
       return res.status(400).json({ 
-        message: 'Cannot delete: this status is being used by tickets',
-        ticketCount: ticketsUsingStatus
+        message: 'Cannot delete: this status is being used by tasks',
+        taskCount: tasksUsingStatus
       });
     }
 

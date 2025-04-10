@@ -1,32 +1,32 @@
 import React from 'react';
 import Dialog from './Dialog.js';
-import TicketForm from './TicketForm.js';
+import TaskForm from './TaskForm.js';
 
-const TicketFormDialog = ({ 
+const TaskFormDialog = ({ 
   isOpen, 
   onClose, 
-  ticket, 
+  task, 
   onSubmit, 
-  title = 'Create Ticket'
+  title = 'Create Task'
 }) => {
   return (
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={ticket ? `Edit Ticket #${ticket.id}` : title}
+      title={task ? `Edit Task #${task.id}` : title}
       size="lg"
     >
-      <TicketForm
-        initialData={ticket}
+      <TaskForm
+        initialData={task}
         onSubmit={async (data) => {
           await onSubmit(data);
           onClose();
         }}
         onCancel={onClose}
-        isEditing={!!ticket}
+        isEditing={!!task}
       />
     </Dialog>
   );
 };
 
-export default TicketFormDialog;
+export default TaskFormDialog;

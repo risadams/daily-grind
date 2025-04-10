@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import useTickets from '../hooks/useTickets.js';
+import useTasks from '../hooks/useTasks.js';
 import Button from './Button.js';
 import FormInput from './FormInput.js';
 import FormSelect from './FormSelect.js';
 import { FaSave, FaTimes, FaUser, FaSearch, FaLink } from 'react-icons/fa/index.js';
 
-const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
+const TaskForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
   const { currentUser } = useAuth();
   const { 
-    tickets, 
+    tasks, 
     types, 
     states, 
     priorities, 
     users, 
     getUserDisplayName 
-  } = useTickets();
+  } = useTasks();
   
   // Form data state
   const [formData, setFormData] = useState({
@@ -24,8 +24,8 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     typeId: '',
     stateId: '',
     assignedToUserId: '',
-    parentTicketId: '',
-    linkedTickets: [],
+    parentTaskId: '',
+    linkedTasks: [],
     priorityId: ''
   });
 
@@ -36,7 +36,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     stateId: ''
   });
   
-  // Search state - separate for parent and linked tickets
+  // Search state - separate for parent and linked tasks
   const [parentSearchQuery, setParentSearchQuery] = useState('');
   const [linkedSearchQuery, setLinkedSearchQuery] = useState('');
   const [showParentSearchResults, setShowParentSearchResults] = useState(false);
@@ -54,12 +54,12 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         typeId: initialData.typeId || '',
         stateId: initialData.stateId || '',
         assignedToUserId: initialData.assignedToUserId || '',
-        parentTicketId: initialData.parentTicketId || '',
-        linkedTickets: initialData.linkedTickets || [],
+        parentTaskId: initialData.parentTaskId || '',
+        linkedTasks: initialData.linkedTasks || [],
         priorityId: initialData.priorityId || '',
       });
     } else {
-      // Default values for new tickets
+      // Default values for new tasks
       const openState = states.find(s => s.name === 'Open');
       const mediumPriority = priorities.find(p => p.name === 'Medium');
 
@@ -69,8 +69,8 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         typeId: '',
         stateId: openState ? openState.id : '',
         assignedToUserId: currentUser?.uid || '',
-        parentTicketId: '',
-        linkedTickets: [],
+        parentTaskId: '',
+        linkedTasks: [],
         priorityId: mediumPriority ? mediumPriority.id : '',
       });
     }
@@ -86,32 +86,32 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     }
   };
 
-  // Filter tickets based on search query for parent ticket
-  const filteredParentTickets = tickets.filter(ticket => 
-    (!initialData || ticket.id !== initialData.id) && // Don't include current ticket in results
-    (ticket.title.toLowerCase().includes(parentSearchQuery.toLowerCase()) || 
-     ticket.id.toLowerCase().includes(parentSearchQuery.toLowerCase()))
+  // Filter tasks based on search query for parent task
+  const filteredParentTasks = tasks.filter(task => 
+    (!initialData || task.id !== initialData.id) && // Don't include current task in results
+    (task.title.toLowerCase().includes(parentSearchQuery.toLowerCase()) || 
+     task.id.toLowerCase().includes(parentSearchQuery.toLowerCase()))
   );
 
-  // Filter tickets based on search query for linked tickets
-  const filteredLinkedTickets = tickets.filter(ticket => 
-    (!initialData || ticket.id !== initialData.id) && // Don't include current ticket in results
-    !formData.linkedTickets.some(t => t.id === ticket.id) && // Don't include already linked tickets
-    (ticket.title.toLowerCase().includes(linkedSearchQuery.toLowerCase()) || 
-     ticket.id.toLowerCase().includes(linkedSearchQuery.toLowerCase()))
+  // Filter tasks based on search query for linked tasks
+  const filteredLinkedTasks = tasks.filter(task => 
+    (!initialData || task.id !== initialData.id) && // Don't include current task in results
+    !formData.linkedTasks.some(t => t.id === task.id) && // Don't include already linked tasks
+    (task.title.toLowerCase().includes(linkedSearchQuery.toLowerCase()) || 
+     task.id.toLowerCase().includes(linkedSearchQuery.toLowerCase()))
   );
 
-  // Add a linked ticket
-  const addLinkedTicket = (ticket) => {
-    // Check if ticket is already linked
-    if (!formData.linkedTickets.some(t => t.id === ticket.id)) {
+  // Add a linked task
+  const addLinkedTask = (task) => {
+    // Check if task is already linked
+    if (!formData.linkedTasks.some(t => t.id === task.id)) {
       setFormData(prev => ({
         ...prev,
-        linkedTickets: [
-          ...prev.linkedTickets, 
+        linkedTasks: [
+          ...prev.linkedTasks, 
           { 
-            id: ticket.id, 
-            title: ticket.title,
+            id: task.id, 
+            title: task.title,
             linkType: 'Related' // Default link type
           }
         ]
@@ -121,30 +121,30 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     setShowLinkedSearchResults(false);
   };
 
-  // Set a parent ticket
-  const setParentTicket = (ticket) => {
-    setFormData(prev => ({ ...prev, parentTicketId: ticket.id }));
+  // Set a parent task
+  const setParentTask = (task) => {
+    setFormData(prev => ({ ...prev, parentTaskId: task.id }));
     setParentSearchQuery('');
     setShowParentSearchResults(false);
   };
 
-  // Remove a linked ticket
-  const removeLinkedTicket = (ticketId) => {
+  // Remove a linked task
+  const removeLinkedTask = (taskId) => {
     setFormData(prev => ({
       ...prev,
-      linkedTickets: prev.linkedTickets.filter(t => t.id !== ticketId)
+      linkedTasks: prev.linkedTasks.filter(t => t.id !== taskId)
     }));
   };
 
-  // Clear parent ticket
-  const clearParentTicket = () => {
-    setFormData(prev => ({ ...prev, parentTicketId: '' }));
+  // Clear parent task
+  const clearParentTask = () => {
+    setFormData(prev => ({ ...prev, parentTaskId: '' }));
   };
 
-  // Get parent ticket details
-  const getParentTicketDetails = () => {
-    if (!formData.parentTicketId) return null;
-    return tickets.find(t => t.id === formData.parentTicketId);
+  // Get parent task details
+  const getParentTaskDetails = () => {
+    if (!formData.parentTaskId) return null;
+    return tasks.find(t => t.id === formData.parentTaskId);
   };
   
   const validateForm = () => {
@@ -155,7 +155,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     }
     
     if (!formData.typeId) {
-      newErrors.typeId = 'Ticket type is required';
+      newErrors.typeId = 'Task type is required';
     }
     
     if (!formData.stateId) {
@@ -186,21 +186,21 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
     setError('');
     
     try {
-      const ticketData = {
+      const taskData = {
         ...formData,
         lastModifiedDate: new Date().toISOString(),
         lastModifiedByUserId: currentUser?.uid, // Track who made the last modification
       };
 
-      // Only set creation-related fields for new tickets
+      // Only set creation-related fields for new tasks
       if (!isEditing) {
-        ticketData.creationDate = new Date().toISOString();
-        ticketData.createdByUserId = currentUser?.uid;
+        taskData.creationDate = new Date().toISOString();
+        taskData.createdByUserId = currentUser?.uid;
       }
       
-      await onSubmit(ticketData);
+      await onSubmit(taskData);
     } catch (err) {
-      setError('Error saving ticket: ' + err.message);
+      setError('Error saving task: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -264,7 +264,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         label="Title"
         value={formData.title}
         onChange={handleInputChange}
-        placeholder="Enter ticket title"
+        placeholder="Enter task title"
         required={true}
         error={errors.title}
       />
@@ -280,7 +280,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
           onChange={handleInputChange}
           rows={3}
           className="w-full rounded-md border-coffee-cream focus:border-coffee-medium focus:ring focus:ring-coffee-light focus:ring-opacity-50"
-          placeholder="Describe the ticket"
+          placeholder="Describe the task"
         />
       </div>
       
@@ -335,7 +335,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
             </select>
           </div>
           <p className="mt-1 text-xs text-coffee-medium">
-            Currently, tickets can only be assigned to yourself or left unassigned.
+            Currently, tasks can only be assigned to yourself or left unassigned.
           </p>
         </div>
       </div>
@@ -351,24 +351,24 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
         placeholder="Select a priority"
       />
 
-      {/* Parent Ticket Selection */}
+      {/* Parent Task Selection */}
       <div>
         <label className="block text-sm font-medium text-coffee-dark mb-1">
-          Parent Ticket
+          Parent Task
         </label>
         <div className="space-y-2">
-          {formData.parentTicketId ? (
+          {formData.parentTaskId ? (
             <div className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
               <div>
                 <span className="font-medium text-coffee-dark">
-                  {getParentTicketDetails()?.title || `Ticket #${formData.parentTicketId}`}
+                  {getParentTaskDetails()?.title || `Task #${formData.parentTaskId}`}
                 </span>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="small"
-                onClick={clearParentTicket}
+                onClick={clearParentTask}
               >
                 Remove
               </Button>
@@ -388,24 +388,24 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
                   }}
                   onFocus={() => setShowParentSearchResults(true)}
                   className="flex-grow p-2 border-0 focus:ring-0 focus:outline-none"
-                  placeholder="Search for a ticket to set as parent..."
+                  placeholder="Search for a task to set as parent..."
                 />
               </div>
               
               {showParentSearchResults && parentSearchQuery && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-coffee-cream rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {filteredParentTickets.length === 0 ? (
-                    <div className="p-3 text-coffee-medium">No tickets found</div>
+                  {filteredParentTasks.length === 0 ? (
+                    <div className="p-3 text-coffee-medium">No tasks found</div>
                   ) : (
                     <ul className="divide-y divide-coffee-cream">
-                      {filteredParentTickets.map(ticket => (
+                      {filteredParentTasks.map(task => (
                         <li 
-                          key={ticket.id}
+                          key={task.id}
                           className="p-2 hover:bg-coffee-light cursor-pointer"
-                          onClick={() => setParentTicket(ticket)}
+                          onClick={() => setParentTask(task)}
                         >
-                          <div className="font-medium text-coffee-dark">{ticket.title}</div>
-                          <div className="text-xs text-coffee-medium">#{ticket.id}</div>
+                          <div className="font-medium text-coffee-dark">{task.title}</div>
+                          <div className="text-xs text-coffee-medium">#{task.id}</div>
                         </li>
                       ))}
                     </ul>
@@ -415,30 +415,30 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
             </div>
           )}
           <p className="text-xs text-coffee-medium">
-            Optionally set a parent ticket to create a hierarchy.
+            Optionally set a parent task to create a hierarchy.
           </p>
         </div>
       </div>
       
-      {/* Linked Tickets */}
+      {/* Linked Tasks */}
       <div>
         <label className="block text-sm font-medium text-coffee-dark mb-1">
-          Linked Tickets
+          Linked Tasks
         </label>
         <div className="space-y-2">
-          {formData.linkedTickets.length > 0 && (
+          {formData.linkedTasks.length > 0 && (
             <div className="space-y-2 mb-2">
-              {formData.linkedTickets.map(ticket => (
-                <div key={ticket.id} className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
+              {formData.linkedTasks.map(task => (
+                <div key={task.id} className="flex items-center justify-between bg-coffee-light p-2 rounded-md">
                   <div className="flex items-center">
                     <FaLink className="text-coffee-medium mr-2" />
-                    <span className="font-medium text-coffee-dark">{ticket.title || `Ticket #${ticket.id}`}</span>
+                    <span className="font-medium text-coffee-dark">{task.title || `Task #${task.id}`}</span>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="small"
-                    onClick={() => removeLinkedTicket(ticket.id)}
+                    onClick={() => removeLinkedTask(task.id)}
                   >
                     Remove
                   </Button>
@@ -461,24 +461,24 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
                 }}
                 onFocus={() => setShowLinkedSearchResults(true)}
                 className="flex-grow p-2 border-0 focus:ring-0 focus:outline-none"
-                placeholder="Search for tickets to link..."
+                placeholder="Search for tasks to link..."
               />
             </div>
             
             {showLinkedSearchResults && linkedSearchQuery && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-coffee-cream rounded-md shadow-lg max-h-60 overflow-y-auto">
-                {filteredLinkedTickets.length === 0 ? (
-                  <div className="p-3 text-coffee-medium">No tickets found</div>
+                {filteredLinkedTasks.length === 0 ? (
+                  <div className="p-3 text-coffee-medium">No tasks found</div>
                 ) : (
                   <ul className="divide-y divide-coffee-cream">
-                    {filteredLinkedTickets.map(ticket => (
+                    {filteredLinkedTasks.map(task => (
                       <li 
-                        key={ticket.id}
+                        key={task.id}
                         className="p-2 hover:bg-coffee-light cursor-pointer"
-                        onClick={() => addLinkedTicket(ticket)}
+                        onClick={() => addLinkedTask(task)}
                       >
-                        <div className="font-medium text-coffee-dark">{ticket.title}</div>
-                        <div className="text-xs text-coffee-medium">#{ticket.id}</div>
+                        <div className="font-medium text-coffee-dark">{task.title}</div>
+                        <div className="text-xs text-coffee-medium">#{task.id}</div>
                       </li>
                     ))}
                   </ul>
@@ -487,7 +487,7 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
             )}
           </div>
           <p className="text-xs text-coffee-medium">
-            Link related tickets to this ticket.
+            Link related tasks to this task.
           </p>
         </div>
       </div>
@@ -507,11 +507,11 @@ const TicketForm = ({ initialData, onSubmit, onCancel, isEditing }) => {
           disabled={loading}
           icon={<FaSave />}
         >
-          {loading ? 'Saving...' : isEditing ? 'Update Ticket' : 'Create Ticket'}
+          {loading ? 'Saving...' : isEditing ? 'Update Task' : 'Create Task'}
         </Button>
       </div>
     </form>
   );
 };
 
-export default TicketForm;
+export default TaskForm;

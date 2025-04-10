@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Sprint = require('../models/sprint');
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const { authenticateJWT, isAdmin } = require('../middleware/auth');
 
 // Get all sprints
@@ -27,14 +27,14 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get tickets for a specific sprint
-router.get('/:id/tickets', async (req, res) => {
+// Get tasks for a specific sprint
+router.get('/:id/tasks', async (req, res) => {
   try {
-    const tickets = await Ticket.find({ sprints: req.params.id })
+    const tasks = await Task.find({ sprints: req.params.id })
       .populate(['status', 'priority', 'assignedTo'])
       .sort({ updatedAt: -1 });
     
-    res.json(tickets);
+    res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -103,8 +103,8 @@ router.put('/:id', authenticateJWT, async (req, res) => {
   }
 });
 
-// Add ticket to a sprint
-router.post('/:id/tickets/:ticketId', authenticateJWT, async (req, res) => {
+// Add task to a sprint
+router.post('/:id/tasks/:taskId', authenticateJWT, async (req, res) => {
   try {
     // Find the sprint
     const sprint = await Sprint.findById(req.params.id);
@@ -112,32 +112,32 @@ router.post('/:id/tickets/:ticketId', authenticateJWT, async (req, res) => {
       return res.status(404).json({ message: 'Sprint not found' });
     }
 
-    // Find the ticket
-    const ticket = await Ticket.findById(req.params.ticketId);
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    // Find the task
+    const task = await Task.findById(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Update the ticket with the sprint reference if not already included
-    if (!ticket.sprints.includes(sprint._id)) {
-      ticket.sprints.push(sprint._id);
-      await ticket.save();
+    // Update the task with the sprint reference if not already included
+    if (!task.sprints.includes(sprint._id)) {
+      task.sprints.push(sprint._id);
+      await task.save();
     }
 
-    // Update the sprint's tickets array if not already included
-    if (!sprint.tickets.includes(ticket._id)) {
-      sprint.tickets.push(ticket._id);
+    // Update the sprint's tasks array if not already included
+    if (!sprint.tasks.includes(task._id)) {
+      sprint.tasks.push(task._id);
       await sprint.save();
     }
 
-    res.json({ message: 'Ticket added to sprint successfully' });
+    res.json({ message: 'Task added to sprint successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Remove ticket from a sprint
-router.delete('/:id/tickets/:ticketId', authenticateJWT, async (req, res) => {
+// Remove task from a sprint
+router.delete('/:id/tasks/:taskId', authenticateJWT, async (req, res) => {
   try {
     // Find the sprint
     const sprint = await Sprint.findById(req.params.id);
@@ -145,23 +145,23 @@ router.delete('/:id/tickets/:ticketId', authenticateJWT, async (req, res) => {
       return res.status(404).json({ message: 'Sprint not found' });
     }
 
-    // Find the ticket
-    const ticket = await Ticket.findById(req.params.ticketId);
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    // Find the task
+    const task = await Task.findById(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Update the ticket to remove this sprint reference
-    ticket.sprints = ticket.sprints.filter(sprintId => 
+    // Update the task to remove this sprint reference
+    task.sprints = task.sprints.filter(sprintId => 
       sprintId.toString() !== req.params.id
     );
-    await ticket.save();
+    await task.save();
 
-    // Update the sprint's tickets array
-    sprint.tickets = sprint.tickets.filter(id => id.toString() !== req.params.ticketId);
+    // Update the sprint's tasks array
+    sprint.tasks = sprint.tasks.filter(id => id.toString() !== req.params.taskId);
     await sprint.save();
 
-    res.json({ message: 'Ticket removed from sprint successfully' });
+    res.json({ message: 'Task removed from sprint successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -175,8 +175,8 @@ router.delete('/:id', authenticateJWT, isAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Sprint not found' });
     }
 
-    // Remove sprint reference from all associated tickets
-    await Ticket.updateMany(
+    // Remove sprint reference from all associated tasks
+    await Task.updateMany(
       { sprints: req.params.id },
       { $pull: { sprints: req.params.id } }
     );

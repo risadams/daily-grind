@@ -6,7 +6,7 @@ import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
 import ThemeSwitcher from '../components/ThemeSwitcher.js';
 import SkipToContent from '../components/SkipToContent.js';
-import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt, FaCoffee, FaList, FaBars, FaCogs } from 'react-icons/fa/index.js';
+import { FaUser, FaSignOutAlt, FaClipboardList, FaHome, FaListAlt, FaCoffee, FaList, FaBars, FaCogs } from 'react-icons/fa/index.js';
 
 const MainLayout = () => {
   const { currentUser, logOut } = useAuth();
@@ -33,7 +33,7 @@ const MainLayout = () => {
   const navLinks = [
     { path: '/dashboard', icon: <FaHome className="mr-1" />, label: 'Dashboard' },
     { path: '/backlog', icon: <FaList className="mr-1" />, label: 'Backlog' },
-    { path: '/tickets', icon: <FaListAlt className="mr-1" />, label: 'All Tickets' },
+    { path: '/tasks', icon: <FaListAlt className="mr-1" />, label: 'All Tasks' },
     { path: '/projects', icon: <FaCogs className="mr-1" />, label: 'Projects' },
     { path: '/profile', icon: <FaUser className="mr-1" />, label: 'Profile' }
   ];
@@ -224,7 +224,7 @@ const MainLayout = () => {
               </ul>
             </nav>
             <div className={`${isDarkMode ? 'text-dark-secondary' : 'text-coffee-cream'} text-sm`}>
-              &copy; {new Date().getFullYear()} Daily Grind. Start your day with a fresh ticket.
+              &copy; {new Date().getFullYear()} Daily Grind. Start your day with a fresh task.
             </div>
           </div>
         </div>

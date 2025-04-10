@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Label = require('../models/label');
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const { authenticateJWT, isAdmin } = require('../middleware/auth');
 
 // Get all labels
@@ -27,14 +27,14 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get tickets for a specific label
-router.get('/:id/tickets', authenticateJWT, async (req, res) => {
+// Get tasks for a specific label
+router.get('/:id/tasks', authenticateJWT, async (req, res) => {
   try {
-    const tickets = await Ticket.find({ labels: req.params.id })
+    const tasks = await Task.find({ labels: req.params.id })
       .populate(['status', 'priority', 'assignedTo', 'labels'])
       .sort({ updatedAt: -1 });
     
-    res.json(tickets);
+    res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -120,8 +120,8 @@ router.delete('/:id', authenticateJWT, isAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Label not found' });
     }
 
-    // Remove label reference from all associated tickets
-    await Ticket.updateMany(
+    // Remove label reference from all associated tasks
+    await Task.updateMany(
       { labels: req.params.id },
       { $pull: { labels: req.params.id } }
     );
@@ -134,13 +134,13 @@ router.delete('/:id', authenticateJWT, isAdmin, async (req, res) => {
   }
 });
 
-// Add label to a ticket
-router.post('/tickets/:ticketId/add/:labelId', authenticateJWT, async (req, res) => {
+// Add label to a task
+router.post('/tasks/:taskId/add/:labelId', authenticateJWT, async (req, res) => {
   try {
-    // Find the ticket
-    const ticket = await Ticket.findById(req.params.ticketId);
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    // Find the task
+    const task = await Task.findById(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
 
     // Find the label
@@ -149,32 +149,32 @@ router.post('/tickets/:ticketId/add/:labelId', authenticateJWT, async (req, res)
       return res.status(404).json({ message: 'Label not found' });
     }
 
-    // Add label to ticket if not already added
-    if (!ticket.labels.includes(label._id)) {
-      ticket.labels.push(label._id);
-      await ticket.save();
+    // Add label to task if not already added
+    if (!task.labels.includes(label._id)) {
+      task.labels.push(label._id);
+      await task.save();
     }
 
-    res.json({ message: 'Label added to ticket successfully' });
+    res.json({ message: 'Label added to task successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Remove label from a ticket
-router.delete('/tickets/:ticketId/remove/:labelId', authenticateJWT, async (req, res) => {
+// Remove label from a task
+router.delete('/tasks/:taskId/remove/:labelId', authenticateJWT, async (req, res) => {
   try {
-    // Update the ticket to remove the label reference
-    const result = await Ticket.updateOne(
-      { _id: req.params.ticketId },
+    // Update the task to remove the label reference
+    const result = await Task.updateOne(
+      { _id: req.params.taskId },
       { $pull: { labels: req.params.labelId } }
     );
 
     if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'Ticket not found' });
+      return res.status(404).json({ message: 'Task not found' });
     }
 
-    res.json({ message: 'Label removed from ticket successfully' });
+    res.json({ message: 'Label removed from task successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

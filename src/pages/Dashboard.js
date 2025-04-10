@@ -9,8 +9,8 @@ import { useToast } from '../context/ToastContext.js';
 import Button from '../components/Button.js';
 import Logo from '../components/Logo.js';
 import Modal from '../components/Modal.js';
-import TicketDetail from '../components/TicketDetail.js';
-import TicketFormDialog from '../components/TicketFormDialog.js';
+import TaskDetail from '../components/TaskDetail.js';
+import TaskFormDialog from '../components/TaskFormDialog.js';
 import PageHeader from '../components/PageHeader.js';
 import Badge from '../components/Badge.js';
 import Avatar from '../components/Avatar.js';
@@ -18,22 +18,22 @@ import ErrorBoundary from '../components/ErrorBoundary.js';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
-  const { tickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
+  const { tasks, types, states, priorities, users, loading, error, createTask, updateTask, deleteTask, getUserDisplayName } = useDatabase();
   const { success, error: showError } = useToast(); // Use the toast context
   const navigate = useNavigate();
   
-  // State for ticket modals
-  const [showTicketModal, setShowTicketModal] = useState(false);
+  // State for task modals
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
   
   // Filter state
-  const [filteredTickets, setFilteredTickets] = useState([]);
+  const [filteredTasks, setFilteredTasks] = useState([]);
   const [filter, setFilter] = useState('all');
 
-  // Helper functions for displaying ticket data with type-safe comparisons
+  // Helper functions for displaying task data with type-safe comparisons
   const getTypeName = (typeId) => {
     const type = types.find(t => 
       t.id === typeId || 
@@ -59,24 +59,24 @@ const Dashboard = () => {
     return priorityObj ? priorityObj.name : 'Medium';
   };
 
-  // Apply filter when tickets or filter changes
+  // Apply filter when tasks or filter changes
   useEffect(() => {
-    if (!tickets) return;
+    if (!tasks) return;
     
     switch (filter) {
       case 'in-progress':
-        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress'));
+        setFilteredTasks(tasks.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress'));
         break;
       case 'closed':
-        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase() === 'closed'));
+        setFilteredTasks(tasks.filter(t => getStateName(t.stateId).toLowerCase() === 'closed'));
         break;
       case 'todo':
-        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'todo'));
+        setFilteredTasks(tasks.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'todo'));
         break;
       default:
-        setFilteredTickets(tickets);
+        setFilteredTasks(tasks);
     }
-  }, [tickets, filter, getStateName]); // Added getStateName to dependency array
+  }, [tasks, filter, getStateName]); // Added getStateName to dependency array
 
   // Get status icon based on state
   const getStatusIcon = (stateId) => {
@@ -98,84 +98,84 @@ const Dashboard = () => {
     return date.toLocaleDateString(undefined, options);
   };
 
-  // Handle viewing a ticket
-  const handleViewTicket = (ticket) => {
-    setSelectedTicket(ticket);
+  // Handle viewing a task
+  const handleViewTask = (task) => {
+    setSelectedTask(task);
     setShowViewModal(true);
   };
 
-  // Handle editing a ticket
-  const handleEditTicket = (ticket) => {
-    setSelectedTicket(ticket);
+  // Handle editing a task
+  const handleEditTask = (task) => {
+    setSelectedTask(task);
     setShowViewModal(false);
     setShowEditModal(true);
   };
 
   // Handle delete confirmation
-  const handleDeleteConfirm = (ticketId) => {
-    const ticket = tickets.find(t => t.id === ticketId);
-    setSelectedTicket(ticket);
+  const handleDeleteConfirm = (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    setSelectedTask(task);
     setShowViewModal(false);
     setShowDeleteConfirm(true);
   };
 
-  // Handle ticket creation
-  const handleCreateTicket = async (ticketData) => {
+  // Handle task creation
+  const handleCreateTask = async (taskData) => {
     try {
-      const result = await createTicket(ticketData);
+      const result = await createTask(taskData);
       
       if (result.success) {
-        success('Ticket created successfully!');
-        setShowTicketModal(false);
+        success('Task created successfully!');
+        setShowTaskModal(false);
         return result;
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error creating ticket:', error);
-      showError('Failed to create ticket. Please try again.');
+      console.error('Error creating task:', error);
+      showError('Failed to create task. Please try again.');
       throw error;
     }
   };
 
-  // Handle ticket update
-  const handleUpdateTicket = async (ticketData) => {
+  // Handle task update
+  const handleUpdateTask = async (taskData) => {
     try {
-      if (!selectedTicket) throw new Error('No ticket selected for update');
+      if (!selectedTask) throw new Error('No task selected for update');
       
-      const result = await updateTicket(selectedTicket.id, ticketData);
+      const result = await updateTask(selectedTask.id, taskData);
       
       if (result.success) {
-        success('Ticket updated successfully!');
+        success('Task updated successfully!');
         setShowEditModal(false);
         return result;
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
-      showError('Failed to update ticket. Please try again.');
+      console.error('Error updating task:', error);
+      showError('Failed to update task. Please try again.');
       throw error;
     }
   };
 
-  // Handle ticket deletion
-  const handleDeleteTicket = async () => {
+  // Handle task deletion
+  const handleDeleteTask = async () => {
     try {
-      if (!selectedTicket) throw new Error('No ticket selected for deletion');
+      if (!selectedTask) throw new Error('No task selected for deletion');
       
-      const result = await deleteTicket(selectedTicket.id);
+      const result = await deleteTask(selectedTask.id);
       
       if (result.success) {
-        success('Ticket deleted successfully!');
+        success('Task deleted successfully!');
         setShowDeleteConfirm(false);
-        setSelectedTicket(null);
+        setSelectedTask(null);
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error deleting ticket:', error);
-      showError('Failed to delete ticket. Please try again.');
+      console.error('Error deleting task:', error);
+      showError('Failed to delete task. Please try again.');
     }
   };
 
@@ -227,13 +227,13 @@ const Dashboard = () => {
                       <h4 className="font-medium text-coffee-dark mb-2">Quick Actions</h4>
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => setShowTicketModal(true)}
+                          onClick={() => setShowTaskModal(true)}
                           className="flex items-center gap-1 flex-1 justify-center py-2 bg-coffee-dark text-white rounded-md hover:bg-coffee-primary transition-all shadow-sm"
                         >
-                          <FaPlus className="text-xs" /> New Ticket
+                          <FaPlus className="text-xs" /> New Task
                         </button>
                         <button 
-                          onClick={() => navigate('/tickets')}
+                          onClick={() => navigate('/tasks')}
                           className="flex items-center gap-1 flex-1 justify-center py-2 bg-white text-coffee-dark border border-coffee-medium rounded-md hover:bg-coffee-light transition-all"
                         >
                           <FaEye className="text-xs" /> View All
@@ -272,15 +272,15 @@ const Dashboard = () => {
             {/* Stats Cards */}
             <div className="lg:col-span-2">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Total Tickets Stats Card */}
+                {/* Total Tasks Stats Card */}
                 <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-coffee-primary">
                   <div className="flex justify-between items-center">
-                    <p className="text-sm uppercase text-coffee-medium font-medium">Total Tickets</p>
+                    <p className="text-sm uppercase text-coffee-medium font-medium">Total Tasks</p>
                     <span className="p-2 bg-coffee-light bg-opacity-30 rounded-full">
                       <FaFilter className="h-4 w-4 text-coffee-dark" />
                     </span>
                   </div>
-                  <h3 className="mt-2 text-3xl font-bold text-coffee-dark">{tickets.length}</h3>
+                  <h3 className="mt-2 text-3xl font-bold text-coffee-dark">{tasks.length}</h3>
                   <div className="mt-2 flex items-center text-sm">
                     <span className="text-coffee-medium">Across all statuses</span>
                   </div>
@@ -295,15 +295,15 @@ const Dashboard = () => {
                     </span>
                   </div>
                   <h3 className="mt-2 text-3xl font-bold text-coffee-dark">
-                    {tickets.filter(t => getStateName(t.stateId).toLowerCase() === 'closed').length}
+                    {tasks.filter(t => getStateName(t.stateId).toLowerCase() === 'closed').length}
                   </h3>
                   <div className="mt-2 flex items-center text-sm">
                     <span className={`text-green-600 ${
-                      tickets.length > 0 
-                        ? `font-medium (${Math.round((tickets.filter(t => getStateName(t.stateId).toLowerCase() === 'closed').length / tickets.length) * 100)}%)`
+                      tasks.length > 0 
+                        ? `font-medium (${Math.round((tasks.filter(t => getStateName(t.stateId).toLowerCase() === 'closed').length / tasks.length) * 100)}%)`
                         : ''
                     }`}>
-                      Closed tickets
+                      Closed tasks
                     </span>
                   </div>
                 </div>
@@ -317,12 +317,12 @@ const Dashboard = () => {
                     </span>
                   </div>
                   <h3 className="mt-2 text-3xl font-bold text-coffee-dark">
-                    {tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress').length}
+                    {tasks.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress').length}
                   </h3>
                   <div className="mt-2 flex items-center text-sm">
                     <span className={`text-blue-600 ${
-                      tickets.length > 0 
-                        ? `font-medium (${Math.round((tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress').length / tickets.length) * 100)}%)`
+                      tasks.length > 0 
+                        ? `font-medium (${Math.round((tasks.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress').length / tasks.length) * 100)}%)`
                         : ''
                     }`}>
                       Active work
@@ -333,22 +333,22 @@ const Dashboard = () => {
               
               {/* Priority Distribution Card */}
               <div className="mt-4 bg-white shadow-md rounded-xl p-6">
-                <h3 className="text-lg font-medium text-coffee-dark mb-4">Ticket Priority Distribution</h3>
+                <h3 className="text-lg font-medium text-coffee-dark mb-4">Task Priority Distribution</h3>
                 <div className="flex items-center space-x-4">
                   {/* High Priority */}
                   <div className="flex-1">
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-coffee-medium">High</span>
                       <span className="font-medium text-coffee-dark">
-                        {tickets.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'high').length}
+                        {tasks.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'high').length}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-red-500 h-2 rounded-full" 
                         style={{ 
-                          width: tickets.length > 0 
-                            ? `${(tickets.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'high').length / tickets.length) * 100}%` 
+                          width: tasks.length > 0 
+                            ? `${(tasks.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'high').length / tasks.length) * 100}%` 
                             : '0%' 
                         }}
                       ></div>
@@ -360,15 +360,15 @@ const Dashboard = () => {
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-coffee-medium">Medium</span>
                       <span className="font-medium text-coffee-dark">
-                        {tickets.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'medium').length}
+                        {tasks.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'medium').length}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-yellow-500 h-2 rounded-full" 
                         style={{ 
-                          width: tickets.length > 0 
-                            ? `${(tickets.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'medium').length / tickets.length) * 100}%` 
+                          width: tasks.length > 0 
+                            ? `${(tasks.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'medium').length / tasks.length) * 100}%` 
                             : '0%' 
                         }}
                       ></div>
@@ -380,15 +380,15 @@ const Dashboard = () => {
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-coffee-medium">Low</span>
                       <span className="font-medium text-coffee-dark">
-                        {tickets.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'low').length}
+                        {tasks.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'low').length}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-green-500 h-2 rounded-full" 
                         style={{ 
-                          width: tickets.length > 0 
-                            ? `${(tickets.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'low').length / tickets.length) * 100}%` 
+                          width: tasks.length > 0 
+                            ? `${(tasks.filter(t => getPriorityName(t.priorityId).toLowerCase() === 'low').length / tasks.length) * 100}%` 
                             : '0%' 
                         }}
                       ></div>
@@ -399,12 +399,12 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Ticket Listing Section */}
+          {/* Task Listing Section */}
           {currentUser && (
             <div className="bg-white shadow-md rounded-xl overflow-hidden">
               <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <h2 className="text-xl font-medium text-coffee-dark flex items-center">
-                  <span className="mr-2">🎟️</span> Your Tickets
+                  <span className="mr-2">🎟️</span> Your Tasks
                 </h2>
                 
                 <div className="flex space-x-2">
@@ -444,10 +444,10 @@ const Dashboard = () => {
                   </div>
                   
                   <button 
-                    onClick={() => handleCreateTicket()}
+                    onClick={() => handleCreateTask()}
                     className="bg-coffee-dark border border-coffee-dark text-white px-4 py-2 rounded-md hover:bg-coffee-primary transition-colors shadow-sm"
                   >
-                    Create Ticket
+                    Create Task
                   </button>
                 </div>
               </div>
@@ -455,7 +455,7 @@ const Dashboard = () => {
               <div className="px-6 py-2 bg-coffee-light bg-opacity-20">
                 <div className="flex justify-between text-sm text-coffee-medium">
                   <div>
-                    Showing {filteredTickets.length} of {tickets.length} tickets
+                    Showing {filteredTasks.length} of {tasks.length} tasks
                   </div>
                   <div>
                     {filter !== 'all' && (
@@ -473,7 +473,7 @@ const Dashboard = () => {
               {loading ? (
                 <div className="flex flex-col items-center justify-center p-16">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coffee-primary mb-4"></div>
-                  <p className="text-coffee-medium">Brewing your tickets...</p>
+                  <p className="text-coffee-medium">Brewing your tasks...</p>
                 </div>
               ) : error ? (
                 <div className="p-8 text-center">
@@ -489,25 +489,25 @@ const Dashboard = () => {
                     Retry
                   </button>
                 </div>
-              ) : filteredTickets.length === 0 ? (
+              ) : filteredTasks.length === 0 ? (
                 <div className="text-center p-16">
                   <div className="mx-auto h-16 w-16 rounded-full bg-coffee-light flex items-center justify-center mb-4">
                     <svg className="h-8 w-8 text-coffee-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-coffee-dark mb-1">No tickets found</h3>
+                  <h3 className="text-lg font-medium text-coffee-dark mb-1">No tasks found</h3>
                   <p className="text-coffee-medium mb-6">
                     {filter !== 'all' 
-                      ? `You don't have any tickets with the ${filter} status.` 
-                      : 'Your workday looks clear! Create a new ticket to get started.'}
+                      ? `You don't have any tasks with the ${filter} status.` 
+                      : 'Your workday looks clear! Create a new task to get started.'}
                   </p>
                   <button
                     className="inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-md text-white bg-coffee-primary hover:bg-coffee-dark transition-colors"
-                    onClick={() => setShowTicketModal(true)}
+                    onClick={() => setShowTaskModal(true)}
                   >
                     <FaPlus className="mr-2" />
-                    Create New Ticket
+                    Create New Task
                   </button>
                 </div>
               ) : (
@@ -525,46 +525,46 @@ const Dashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredTickets.map((ticket) => (
-                        <tr key={ticket.id} className="hover:bg-coffee-light hover:bg-opacity-10 transition-colors">
+                      {filteredTasks.map((task) => (
+                        <tr key={task.id} className="hover:bg-coffee-light hover:bg-opacity-10 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-coffee-dark">{ticket.title}</div>
+                            <div className="text-sm font-medium text-coffee-dark">{task.title}</div>
                             <div className="text-xs text-coffee-medium truncate max-w-xs">
-                              {ticket.description || 'No description provided'}
+                              {task.description || 'No description provided'}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-coffee-dark">{getTypeName(ticket.typeId)}</div>
+                            <div className="text-sm text-coffee-dark">{getTypeName(task.typeId)}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {/* Use the Badge component for status */}
                             <Badge
                               type="status"
-                              text={getStateName(ticket.stateId)}
-                              value={getStateName(ticket.stateId)}
-                              icon={getStatusIcon(ticket.stateId)}
+                              text={getStateName(task.stateId)}
+                              value={getStateName(task.stateId)}
+                              icon={getStatusIcon(task.stateId)}
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {/* Use the Badge component for priority */}
                             <Badge
                               type="priority"
-                              text={getPriorityName(ticket.priorityId)}
-                              value={getPriorityName(ticket.priorityId)}
+                              text={getPriorityName(task.priorityId)}
+                              value={getPriorityName(task.priorityId)}
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              {ticket.assignedToUserId ? (
+                              {task.assignedToUserId ? (
                                 <>
                                   {/* Use the Avatar component for assigned user */}
                                   <Avatar 
-                                    name={getUserDisplayName(ticket.assignedToUserId)} 
+                                    name={getUserDisplayName(task.assignedToUserId)} 
                                     size="xs" 
                                     className="mr-2" 
                                   />
                                   <span className="text-sm text-coffee-medium">
-                                    {getUserDisplayName(ticket.assignedToUserId)}
+                                    {getUserDisplayName(task.assignedToUserId)}
                                   </span>
                                 </>
                               ) : (
@@ -573,34 +573,34 @@ const Dashboard = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-coffee-medium">
-                            {formatDate(ticket.creationDate)}
+                            {formatDate(task.creationDate)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center space-x-2 justify-end">
                               <button 
                                 className="text-coffee-primary p-1.5 rounded-full hover:bg-coffee-light hover:text-coffee-dark transition-colors"
-                                onClick={() => handleViewTicket(ticket)}
+                                onClick={() => handleViewTask(task)}
                                 title="View Details"
                               >
                                 <FaEye />
                               </button>
                               <button
                                 className="text-yellow-500 p-1.5 rounded-full hover:bg-yellow-50 hover:text-yellow-700 transition-colors"
-                                onClick={() => handleEditTicket(ticket)}
+                                onClick={() => handleEditTask(task)}
                                 title="Edit"
                               >
                                 <FaEdit />
                               </button>
-                              {getStateName(ticket.stateId) !== 'Closed' && (
+                              {getStateName(task.stateId) !== 'Closed' && (
                                 <button
                                   className="text-green-500 p-1.5 rounded-full hover:bg-green-50 hover:text-green-700 transition-colors"
                                   onClick={() => {
                                     const closedStateId = states.find(state => state.name === 'Closed')?.id;
                                     if (closedStateId) {
-                                      handleUpdateTicket({ ...ticket, stateId: closedStateId });
+                                      handleUpdateTask({ ...task, stateId: closedStateId });
                                     }
                                   }}
-                                  title="Close Ticket"
+                                  title="Close Task"
                                 >
                                   <FaCheckCircle />
                                 </button>
@@ -617,22 +617,22 @@ const Dashboard = () => {
           )}
         </div>
         
-        {/* Create Ticket Modal */}
-        <TicketFormDialog
-          isOpen={showTicketModal}
-          onClose={() => setShowTicketModal(false)}
-          onSubmit={handleCreateTicket}
+        {/* Create Task Modal */}
+        <TaskFormDialog
+          isOpen={showTaskModal}
+          onClose={() => setShowTaskModal(false)}
+          onSubmit={handleCreateTask}
         />
 
-        {/* View Ticket Modal */}
+        {/* View Task Modal */}
         <Modal
           isOpen={showViewModal}
           onClose={() => setShowViewModal(false)}
-          title="Ticket Details"
+          title="Task Details"
         >
-          <TicketDetail 
-            ticket={selectedTicket}
-            onEdit={handleEditTicket}
+          <TaskDetail 
+            task={selectedTask}
+            onEdit={handleEditTask}
             onDelete={handleDeleteConfirm}
             types={types}
             states={states}
@@ -640,12 +640,12 @@ const Dashboard = () => {
           />
         </Modal>
 
-        {/* Edit Ticket Modal */}
-        <TicketFormDialog
+        {/* Edit Task Modal */}
+        <TaskFormDialog
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          ticket={selectedTicket}
-          onSubmit={handleUpdateTicket}
+          task={selectedTask}
+          onSubmit={handleUpdateTask}
         />
 
         {/* Delete Confirmation Modal */}
@@ -657,7 +657,7 @@ const Dashboard = () => {
         >
           <div className="space-y-4">
             <p className="text-coffee-dark">
-              Are you sure you want to delete the ticket "{selectedTicket?.title}"?
+              Are you sure you want to delete the task "{selectedTask?.title}"?
             </p>
             <p className="text-sm text-coffee-medium">
               This action cannot be undone.
@@ -671,7 +671,7 @@ const Dashboard = () => {
               </Button>
               <Button
                 variant="danger"
-                onClick={handleDeleteTicket}
+                onClick={handleDeleteTask}
               >
                 Delete
               </Button>

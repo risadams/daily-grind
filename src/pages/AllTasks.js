@@ -3,24 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { useDatabase } from '../context/DatabaseContext.js';
 import { FaSort, FaSortUp, FaSortDown, FaSearch, FaEdit, FaEye, FaCheckCircle, FaPlus, FaFilter, FaTimes } from 'react-icons/fa/index.js';
 import Modal from '../components/Modal.js';
-import TicketDetail from '../components/TicketDetail.js';
-import TicketFormDialog from '../components/TicketFormDialog.js';
+import TaskDetail from '../components/TaskDetail.js';
+import TaskFormDialog from '../components/TaskFormDialog.js';
 import PageHeader from '../components/PageHeader.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useTheme } from '../context/ThemeContext.js';
 
-export default function AllTicketsPage() {
+export default function AllTasksPage() {
   const { 
-    tickets, 
+    tasks, 
     types, 
     states, 
     priorities, 
     users, 
     loading, 
     error, 
-    createTicket, 
-    updateTicket, 
-    deleteTicket, 
+    createTask, 
+    updateTask, 
+    deleteTask, 
     getUserDisplayName 
   } = useDatabase();
   const { currentUser } = useAuth();
@@ -29,7 +29,7 @@ export default function AllTicketsPage() {
 
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredTickets, setFilteredTickets] = useState([]);
+  const [filteredTasks, setFilteredTasks] = useState([]);
   const [filters, setFilters] = useState({
     status: '',
     type: '',
@@ -44,62 +44,62 @@ export default function AllTicketsPage() {
     direction: 'desc'
   });
 
-  // State for ticket modals
-  const [showTicketModal, setShowTicketModal] = useState(false);
+  // State for task modals
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [ticketActionSuccess, setTicketActionSuccess] = useState({ show: false, message: '' });
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskActionSuccess, setTaskActionSuccess] = useState({ show: false, message: '' });
 
-  // Filter and sort tickets when dependencies change
+  // Filter and sort tasks when dependencies change
   useEffect(() => {
-    // Make sure tickets is an array
-    let result = Array.isArray(tickets) ? [...tickets] : [];
+    // Make sure tasks is an array
+    let result = Array.isArray(tasks) ? [...tasks] : [];
 
     // Apply search term filter
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
-      result = result.filter(ticket =>
-        ticket.title?.toLowerCase().includes(lowercasedTerm) ||
-        (ticket.description && ticket.description.toLowerCase().includes(lowercasedTerm))
+      result = result.filter(task =>
+        task.title?.toLowerCase().includes(lowercasedTerm) ||
+        (task.description && task.description.toLowerCase().includes(lowercasedTerm))
       );
     }
 
     // Apply status filter
     if (filters.status) {
-      result = result.filter(ticket => {
-        if (!ticket.status) return false;
+      result = result.filter(task => {
+        if (!task.status) return false;
 
-        const ticketStatusId = typeof ticket.status === 'object' && ticket.status._id 
-          ? ticket.status._id.toString() 
-          : ticket.status.toString();
+        const taskStatusId = typeof task.status === 'object' && task.status._id 
+          ? task.status._id.toString() 
+          : task.status.toString();
           
-        return ticketStatusId === filters.status;
+        return taskStatusId === filters.status;
       });
     }
 
     // Apply type filter (optional in our model)
     if (filters.type) {
-      result = result.filter(ticket => {
-        if (!ticket.type && !ticket.feature) return false;
+      result = result.filter(task => {
+        if (!task.type && !task.feature) return false;
         
         // Check type field if exists
-        if (ticket.type) {
-          const ticketTypeId = typeof ticket.type === 'object' && ticket.type._id 
-            ? ticket.type._id.toString() 
-            : ticket.type.toString();
+        if (task.type) {
+          const taskTypeId = typeof task.type === 'object' && task.type._id 
+            ? task.type._id.toString() 
+            : task.type.toString();
           
-          if (ticketTypeId === filters.type) return true;
+          if (taskTypeId === filters.type) return true;
         }
         
         // Check feature field if exists
-        if (ticket.feature) {
-          const ticketFeatureId = typeof ticket.feature === 'object' && ticket.feature._id 
-            ? ticket.feature._id.toString() 
-            : ticket.feature.toString();
+        if (task.feature) {
+          const taskFeatureId = typeof task.feature === 'object' && task.feature._id 
+            ? task.feature._id.toString() 
+            : task.feature.toString();
           
-          if (ticketFeatureId === filters.type) return true;
+          if (taskFeatureId === filters.type) return true;
         }
         
         return false;
@@ -108,22 +108,22 @@ export default function AllTicketsPage() {
 
     // Apply priority filter
     if (filters.priority) {
-      result = result.filter(ticket => {
-        if (!ticket.priority) return false;
+      result = result.filter(task => {
+        if (!task.priority) return false;
 
-        const ticketPriorityId = typeof ticket.priority === 'object' && ticket.priority._id 
-          ? ticket.priority._id.toString() 
-          : ticket.priority.toString();
+        const taskPriorityId = typeof task.priority === 'object' && task.priority._id 
+          ? task.priority._id.toString() 
+          : task.priority.toString();
           
-        return ticketPriorityId === filters.priority;
+        return taskPriorityId === filters.priority;
       });
     }
     
     // Apply story points filter
     if (filters.storyPoints) {
-      result = result.filter(ticket => {
-        const ticketPoints = ticket.storyPoints || 0;
-        return ticketPoints === Number(filters.storyPoints);
+      result = result.filter(task => {
+        const taskPoints = task.storyPoints || 0;
+        return taskPoints === Number(filters.storyPoints);
       });
     }
 
@@ -163,8 +163,8 @@ export default function AllTicketsPage() {
       });
     }
 
-    setFilteredTickets(result);
-  }, [tickets, searchTerm, filters, sortConfig]);
+    setFilteredTasks(result);
+  }, [tasks, searchTerm, filters, sortConfig]);
 
   // Table sorting handler
   const handleSort = (key) => {
@@ -183,7 +183,7 @@ export default function AllTicketsPage() {
       <FaSortDown className="inline ml-1 text-coffee-dark" />;
   };
 
-  // Helper functions for displaying ticket data with MongoDB references
+  // Helper functions for displaying task data with MongoDB references
   const getStatusName = (status) => {
     if (!status) return 'Unknown';
     
@@ -401,45 +401,45 @@ export default function AllTicketsPage() {
   };
 
   const showSuccessMessage = (message) => {
-    setTicketActionSuccess({ show: true, message });
+    setTaskActionSuccess({ show: true, message });
     setTimeout(() => {
-      setTicketActionSuccess({ show: false, message: '' });
+      setTaskActionSuccess({ show: false, message: '' });
     }, 3000);
   };
 
-  // Helper functions for ticket operations
-  const handleCreateTicket = async (ticketData) => {
+  // Helper functions for task operations
+  const handleCreateTask = async (taskData) => {
     try {
-      const result = await createTicket(ticketData);
+      const result = await createTask(taskData);
       if (result.success) {
-        showSuccessMessage('Ticket created successfully!');
-        setShowTicketModal(false);
+        showSuccessMessage('Task created successfully!');
+        setShowTaskModal(false);
       }
     } catch (error) {
-      console.error('Error creating ticket:', error);
-      setTicketActionSuccess({ show: true, message: 'Failed to create ticket. Please try again.' });
-      setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
+      console.error('Error creating task:', error);
+      setTaskActionSuccess({ show: true, message: 'Failed to create task. Please try again.' });
+      setTimeout(() => setTaskActionSuccess({ show: false, message: '' }), 3000);
     }
   };
 
-  const handleUpdateTicket = async (ticketData) => {
+  const handleUpdateTask = async (taskData) => {
     try {
-      if (!selectedTicket) throw new Error('No ticket selected for update');
+      if (!selectedTask) throw new Error('No task selected for update');
 
-      const result = await updateTicket(selectedTicket._id, ticketData);
+      const result = await updateTask(selectedTask._id, taskData);
       if (result.success) {
-        showSuccessMessage('Ticket updated successfully!');
+        showSuccessMessage('Task updated successfully!');
         setShowEditModal(false);
-        setSelectedTicket(null);
+        setSelectedTask(null);
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
-      setTicketActionSuccess({ show: true, message: 'Failed to update ticket. Please try again.' });
-      setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
+      console.error('Error updating task:', error);
+      setTaskActionSuccess({ show: true, message: 'Failed to update task. Please try again.' });
+      setTimeout(() => setTaskActionSuccess({ show: false, message: '' }), 3000);
     }
   };
 
-  const handleCloseTicket = async (ticketId) => {
+  const handleCloseTask = async (taskId) => {
     try {
       // Find "Done" status from states array
       const doneStatus = states.find(state => 
@@ -451,44 +451,44 @@ export default function AllTicketsPage() {
         throw new Error('Could not find Done/Closed status');
       }
 
-      const result = await updateTicket(ticketId, { status: doneStatus._id });
+      const result = await updateTask(taskId, { status: doneStatus._id });
       if (result.success) {
-        showSuccessMessage('Ticket closed successfully!');
+        showSuccessMessage('Task closed successfully!');
       }
     } catch (error) {
-      console.error('Error closing ticket:', error);
-      setTicketActionSuccess({ show: true, message: 'Failed to close ticket. Please try again.' });
-      setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
+      console.error('Error closing task:', error);
+      setTaskActionSuccess({ show: true, message: 'Failed to close task. Please try again.' });
+      setTimeout(() => setTaskActionSuccess({ show: false, message: '' }), 3000);
     }
   };
 
-  const handleDeleteTicket = async (ticketId) => {
+  const handleDeleteTask = async (taskId) => {
     try {
-      const result = await deleteTicket(ticketId);
+      const result = await deleteTask(taskId);
       if (result.success) {
-        showSuccessMessage('Ticket deleted successfully!');
+        showSuccessMessage('Task deleted successfully!');
         setShowDeleteModal(false);
-        setSelectedTicket(null);
+        setSelectedTask(null);
       }
     } catch (error) {
-      console.error('Error deleting ticket:', error);
-      setTicketActionSuccess({ show: true, message: 'Failed to delete ticket. Please try again.' });
-      setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
+      console.error('Error deleting task:', error);
+      setTaskActionSuccess({ show: true, message: 'Failed to delete task. Please try again.' });
+      setTimeout(() => setTaskActionSuccess({ show: false, message: '' }), 3000);
     }
   };
 
   return (
     <div className={`px-4 py-6 sm:px-6 lg:px-8 ${isDarkMode ? 'bg-dark-primary' : 'bg-gray-50'} min-h-screen`}>
       {/* Success message alert */}
-      {ticketActionSuccess.show && (
+      {taskActionSuccess.show && (
         <div className="mb-4 p-4 rounded-md bg-green-50 border border-green-200 text-green-800 shadow-md flex justify-between items-center">
           <div className="flex items-center">
             <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            <span className="block sm:inline">{ticketActionSuccess.message}</span>
+            <span className="block sm:inline">{taskActionSuccess.message}</span>
           </div>
-          <button onClick={() => setTicketActionSuccess({ show: false, message: '' })}>
+          <button onClick={() => setTaskActionSuccess({ show: false, message: '' })}>
             <FaTimes className="h-4 w-4 text-green-800" />
           </button>
         </div>
@@ -498,10 +498,10 @@ export default function AllTicketsPage() {
         title={
           <div className="flex items-center">
             <span className="mr-2">🎟️</span>
-            <span>All Tickets</span>
+            <span>All Tasks</span>
           </div>
         }
-        subtitle="View and manage all tickets in your system"
+        subtitle="View and manage all tasks in your system"
       />
 
       {/* Filter and Search Bar */}
@@ -518,7 +518,7 @@ export default function AllTicketsPage() {
                 <input
                   type="text"
                   className={`${isDarkMode ? 'bg-dark-input border-dark-border text-dark-text' : 'bg-gray-50 border-gray-200 text-coffee-dark'} border rounded-lg block w-full pl-10 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-light transition-all`}
-                  placeholder="Search tickets by title or description..."
+                  placeholder="Search tasks by title or description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -554,10 +554,10 @@ export default function AllTicketsPage() {
               )}
               
               <button 
-                onClick={() => setShowTicketModal(true)} 
+                onClick={() => setShowTaskModal(true)} 
                 className="bg-coffee-dark border border-coffee-dark text-white px-4 py-2 rounded-lg hover:bg-coffee-primary transition-colors shadow-sm"
               >
-                <FaPlus className="inline-block mr-1" /> Create Ticket
+                <FaPlus className="inline-block mr-1" /> Create Task
               </button>
             </div>
           </div>
@@ -614,22 +614,22 @@ export default function AllTicketsPage() {
         </div>
       </div>
 
-      {/* Ticket Stats */}
-      {filteredTickets.length > 0 && (
+      {/* Task Stats */}
+      {filteredTasks.length > 0 && (
         <div className={`flex items-center mb-4 text-sm ${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>
-          <span className="mr-2">Displaying {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}</span>
+          <span className="mr-2">Displaying {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</span>
           {hasActiveFilters() && (
             <span className={`${isDarkMode ? 'bg-dark-hover text-dark-text' : 'bg-coffee-light text-coffee-dark'} px-2 py-1 rounded-md`}>Filtered results</span>
           )}
         </div>
       )}
 
-      {/* Ticket Grid */}
+      {/* Task Grid */}
       <div className={`${isDarkMode ? 'bg-dark-secondary' : 'bg-white'} shadow-md rounded-xl overflow-hidden transition-all duration-150`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center p-16">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coffee-primary mb-4"></div>
-            <p className={`${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>Brewing your tickets...</p>
+            <p className={`${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>Brewing your tasks...</p>
           </div>
         ) : error ? (
           <div className="p-10 text-center">
@@ -647,21 +647,21 @@ export default function AllTicketsPage() {
               Retry
             </button>
           </div>
-        ) : filteredTickets.length === 0 ? (
+        ) : filteredTasks.length === 0 ? (
           <div className="text-center p-16">
             <div className={`mx-auto h-16 w-16 rounded-full ${isDarkMode ? 'bg-dark-hover' : 'bg-coffee-light'} flex items-center justify-center mb-4`}>
               <svg className={`h-8 w-8 ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h3 className={`text-lg font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} mb-1`}>No tickets found</h3>
+            <h3 className={`text-lg font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} mb-1`}>No tasks found</h3>
             <p className={`${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'} mb-6`}>Try adjusting your search or filter criteria.</p>
             <button
               className="inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-md text-white bg-coffee-primary hover:bg-coffee-dark transition-colors"
-              onClick={() => setShowTicketModal(true)}
+              onClick={() => setShowTaskModal(true)}
             >
               <FaPlus className="mr-2" />
-              Create New Ticket
+              Create New Task
             </button>
           </div>
         ) : (
@@ -732,42 +732,42 @@ export default function AllTicketsPage() {
                 </tr>
               </thead>
               <tbody className={`${isDarkMode ? 'bg-dark-secondary divide-dark-border' : 'bg-white divide-gray-200'} divide-y`}>
-                {filteredTickets.map((ticket) => (
-                  <tr key={ticket._id} className={`${isDarkMode ? 'hover:bg-dark-hover' : 'hover:bg-gray-50'} transition-colors`}>
+                {filteredTasks.map((task) => (
+                  <tr key={task._id} className={`${isDarkMode ? 'hover:bg-dark-hover' : 'hover:bg-gray-50'} transition-colors`}>
                     <td className={`px-6 py-4 text-sm font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`}>
                       <div className="flex items-center">
-                        <span className="font-medium">{ticket.title}</span>
+                        <span className="font-medium">{task.title}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${getStatusColorClass(ticket.status)}`}
+                        ${getStatusColorClass(task.status)}`}
                       >
-                        {getStatusName(ticket.status)}
+                        {getStatusName(task.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${getPriorityColorClass(ticket.priority)}`}
+                        ${getPriorityColorClass(task.priority)}`}
                       >
-                        {getPriorityName(ticket.priority)}
+                        {getPriorityName(task.priority)}
                       </span>
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`}>
-                      {ticket.storyPoints || 0}
+                      {task.storyPoints || 0}
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-dark-text' : 'text-coffee-medium'}`}>
-                      {getAssigneeName(ticket.assignedTo)}
+                      {getAssigneeName(task.assignedTo)}
                     </td>
                     <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-dark-text' : 'text-coffee-medium'}`}>
-                      {formatDate(ticket.createdAt)}
+                      {formatDate(task.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center space-x-3 justify-end">
                         <button
                           className={`text-coffee-primary p-1.5 rounded-full ${isDarkMode ? 'hover:bg-dark-hover' : 'hover:bg-coffee-light'} hover:text-coffee-dark transition-colors`}
                           onClick={() => {
-                            setSelectedTicket(ticket);
+                            setSelectedTask(task);
                             setShowViewModal(true);
                           }}
                           title="View Details"
@@ -777,19 +777,19 @@ export default function AllTicketsPage() {
                         <button
                           className="text-yellow-500 p-1.5 rounded-full hover:bg-yellow-50 hover:text-yellow-700 transition-colors"
                           onClick={() => {
-                            setSelectedTicket(ticket);
+                            setSelectedTask(task);
                             setShowEditModal(true);
                           }}
                           title="Edit"
                         >
                           <FaEdit />
                         </button>
-                        {getStatusName(ticket.status).toLowerCase() !== 'done' && 
-                         getStatusName(ticket.status).toLowerCase() !== 'closed' && (
+                        {getStatusName(task.status).toLowerCase() !== 'done' && 
+                         getStatusName(task.status).toLowerCase() !== 'closed' && (
                           <button
                             className="text-green-500 p-1.5 rounded-full hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => handleCloseTicket(ticket._id)}
-                            title="Close Ticket"
+                            onClick={() => handleCloseTask(task._id)}
+                            title="Close Task"
                           >
                             <FaCheckCircle />
                           </button>
@@ -804,46 +804,46 @@ export default function AllTicketsPage() {
         )}
       </div>
 
-      {/* Create Ticket Modal */}
-      <TicketFormDialog
-        isOpen={showTicketModal}
-        onClose={() => setShowTicketModal(false)}
-        onSubmit={handleCreateTicket}
+      {/* Create Task Modal */}
+      <TaskFormDialog
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        onSubmit={handleCreateTask}
       />
 
-      {/* View Ticket Modal */}
+      {/* View Task Modal */}
       <Modal
         isOpen={showViewModal}
         onClose={() => {
           setShowViewModal(false);
-          setSelectedTicket(null);
+          setSelectedTask(null);
         }}
-        title="Ticket Details"
+        title="Task Details"
       >
-        <TicketDetail
-          ticket={selectedTicket}
+        <TaskDetail
+          task={selectedTask}
           onEdit={() => {
             setShowViewModal(false);
             setShowEditModal(true);
           }}
-          onDelete={(ticketId) => {
+          onDelete={(taskId) => {
             setShowViewModal(false);
-            setSelectedTicket(null);
-            handleDeleteTicket(ticketId);
+            setSelectedTask(null);
+            handleDeleteTask(taskId);
           }}
         />
       </Modal>
 
-      {/* Edit Ticket Modal */}
-      <TicketFormDialog
+      {/* Edit Task Modal */}
+      <TaskFormDialog
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
-          setSelectedTicket(null);
+          setSelectedTask(null);
         }}
-        ticket={selectedTicket}
-        onSubmit={handleUpdateTicket}
-        title={selectedTicket ? `Edit Ticket: ${selectedTicket.title}` : 'Edit Ticket'}
+        task={selectedTask}
+        onSubmit={handleUpdateTask}
+        title={selectedTask ? `Edit Task: ${selectedTask.title}` : 'Edit Task'}
       />
 
       {/* Delete Confirmation Modal */}
@@ -855,7 +855,7 @@ export default function AllTicketsPage() {
       >
         <div className="space-y-4">
           <p className={`${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`}>
-            Are you sure you want to delete the ticket "{selectedTicket?.title}"?
+            Are you sure you want to delete the task "{selectedTask?.title}"?
           </p>
           <p className={`text-sm ${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>
             This action cannot be undone.
@@ -871,7 +871,7 @@ export default function AllTicketsPage() {
             </button>
             <button
               className="px-4 py-2 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700"
-              onClick={() => selectedTicket && handleDeleteTicket(selectedTicket._id)}
+              onClick={() => selectedTask && handleDeleteTask(selectedTask._id)}
             >
               Delete
             </button>

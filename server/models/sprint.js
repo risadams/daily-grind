@@ -39,9 +39,9 @@ const SprintSchema = new mongoose.Schema({
     ref: 'Retrospective',
     default: null
   },
-  tickets: [{
+  tasks: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Ticket'
+    ref: 'Task'
   }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

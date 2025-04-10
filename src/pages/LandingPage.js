@@ -59,7 +59,7 @@ const LandingPage = () => {
                   <span className="block text-coffee-accent">daily grind</span>
                 </h1>
                 <p className="mt-3 text-base text-coffee-medium sm:text-lg md:mt-5 md:text-xl">
-                  Stay organized, focused, and productive with our all-in-one ticket tracking system designed specifically for Scrum teams.
+                  Stay organized, focused, and productive with our all-in-one task tracking system designed specifically for Scrum teams.
                 </p>
                 <div className="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0">
                   <div className="flex flex-col sm:flex-row sm:justify-center lg:justify-start gap-4">
@@ -139,7 +139,7 @@ const LandingPage = () => {
                 {
                   icon: <FaCoffee className="h-8 w-8" />,
                   title: "Task Management",
-                  description: "Create, organize, and prioritize your tickets to stay on top of your workload.",
+                  description: "Create, organize, and prioritize your tasks to stay on top of your workload.",
                 },
                 {
                   icon: <FaClock className="h-8 w-8" />,
@@ -207,7 +207,7 @@ const LandingPage = () => {
                 name: "Michael Chen",
                 role: "Product Owner",
                 company: "TechPro Software",
-                quote: "Finally, a ticket system that actually understands agile! Our sprints are more focused and our team is more productive.",
+                quote: "Finally, a task system that actually understands agile! Our sprints are more focused and our team is more productive.",
                 rating: 5,
               },
               {

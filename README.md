@@ -1,8 +1,8 @@
-# Daily Grind ☕
+# 🍵 Daily Grind 
 
-> *Brewing better tickets, one sprint at a time*
+> *Brewing better tasks, one sprint at a time*
 
-DailyGrind is an open-source ticket tracking system designed specifically for Scrum teams who want a lightweight, intuitive solution that actually follows agile principles. Unlike overly complex enterprise tools, DailyGrind focuses on what matters: helping teams collaborate effectively while maintaining agile best practices.
+DailyGrind is an open-source task tracking system designed specifically for Scrum teams who want a lightweight, intuitive solution that actually follows agile principles. Unlike overly complex enterprise tools, DailyGrind focuses on what matters: helping teams collaborate effectively while maintaining agile best practices.
 
 ![DailyGrind Banner](assets/dailygrind-banner.png)
 
