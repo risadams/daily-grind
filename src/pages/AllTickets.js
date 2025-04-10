@@ -150,7 +150,7 @@ export default function AllTicketsPage() {
     if (!status) return 'Unknown';
     
     // If it's already a string name, return it
-    if (typeof status === 'string') {
+    if (typeof status === 'string' && status.length < 24) {
       return status.charAt(0).toUpperCase() + status.slice(1);
     }
     
@@ -160,9 +160,10 @@ export default function AllTicketsPage() {
     }
     
     // If it's an ObjectId reference that's not populated
+    const statusId = typeof status === 'object' ? status.toString() : status;
     const statusObj = states.find(s => 
-      s._id === status || 
-      s._id.toString() === status.toString()
+      s._id === statusId || 
+      s._id.toString() === statusId
     );
     
     return statusObj ? statusObj.name : 'Unknown';
@@ -172,7 +173,7 @@ export default function AllTicketsPage() {
     if (!priority) return 'Medium';
     
     // If it's already a string name, return it
-    if (typeof priority === 'string') {
+    if (typeof priority === 'string' && priority.length < 24) {
       return priority.charAt(0).toUpperCase() + priority.slice(1);
     }
     
@@ -182,9 +183,10 @@ export default function AllTicketsPage() {
     }
     
     // If it's an ObjectId reference that's not populated
+    const priorityId = typeof priority === 'object' ? priority.toString() : priority;
     const priorityObj = priorities.find(p => 
-      p._id === priority || 
-      p._id.toString() === priority.toString()
+      p._id === priorityId || 
+      p._id.toString() === priorityId
     );
     
     return priorityObj ? priorityObj.name : 'Medium';
@@ -210,6 +212,17 @@ export default function AllTicketsPage() {
   const getAssigneeName = (assignedTo) => {
     if (!assignedTo) return 'Unassigned';
     
+    // If it's already a user object with a displayName
+    if (typeof assignedTo === 'object' && assignedTo.displayName) {
+      return assignedTo.displayName;
+    }
+    
+    // If it's already a user object with an email but no displayName
+    if (typeof assignedTo === 'object' && assignedTo.email) {
+      return assignedTo.email.split('@')[0];
+    }
+    
+    // If it's an ID, use getUserDisplayName which we improved in DatabaseContext
     return getUserDisplayName(assignedTo) || 'Unknown User';
   };
   

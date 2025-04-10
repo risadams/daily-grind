@@ -95,6 +95,16 @@ router.get('/auth/google/callback',
   }
 );
 
+// Get all users
+router.get('/all', authenticateJWT, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get user profile
 router.get('/:userId', authenticateJWT, isCurrentUser, async (req, res) => {
   try {
