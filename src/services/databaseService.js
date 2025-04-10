@@ -61,6 +61,87 @@ const deleteTicket = async (id) => {
   }
 };
 
+// Teams API
+const getTeams = async () => {
+  initializeAxios();
+  try {
+    const response = await axios.get(`${API_URL}/teams`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch teams');
+  }
+};
+
+const getTeamById = async (id) => {
+  initializeAxios();
+  try {
+    const response = await axios.get(`${API_URL}/teams/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch team');
+  }
+};
+
+const createTeam = async (teamData) => {
+  initializeAxios();
+  try {
+    const response = await axios.post(`${API_URL}/teams`, teamData);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to create team');
+  }
+};
+
+const updateTeam = async (id, teamData) => {
+  initializeAxios();
+  try {
+    const response = await axios.put(`${API_URL}/teams/${id}`, teamData);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to update team');
+  }
+};
+
+const deleteTeam = async (id) => {
+  initializeAxios();
+  try {
+    const response = await axios.delete(`${API_URL}/teams/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to delete team');
+  }
+};
+
+const addTeamMember = async (teamId, userId, roleIds = []) => {
+  initializeAxios();
+  try {
+    const response = await axios.post(`${API_URL}/teams/${teamId}/members/${userId}`, { roleIds });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to add team member');
+  }
+};
+
+const updateTeamMemberRoles = async (teamId, userId, roleIds) => {
+  initializeAxios();
+  try {
+    const response = await axios.put(`${API_URL}/teams/${teamId}/members/${userId}/roles`, { roleIds });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to update team member roles');
+  }
+};
+
+const removeTeamMember = async (teamId, userId) => {
+  initializeAxios();
+  try {
+    const response = await axios.delete(`${API_URL}/teams/${teamId}/members/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to remove team member');
+  }
+};
+
 // File Attachments API
 const addAttachment = async (ticketId, file) => {
   initializeAxios();
@@ -101,7 +182,15 @@ const databaseService = {
   updateTicket,
   deleteTicket,
   addAttachment,
-  removeAttachment
+  removeAttachment,
+  getTeams,
+  getTeamById,
+  createTeam,
+  updateTeam,
+  deleteTeam,
+  addTeamMember,
+  updateTeamMemberRoles,
+  removeTeamMember
 };
 
 export default databaseService;

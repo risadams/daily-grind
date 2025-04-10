@@ -443,11 +443,11 @@ const Dashboard = () => {
                     </button>
                   </div>
                   
-                  <button
-                    className="ml-2 flex items-center gap-2 px-4 py-2 bg-coffee-dark text-white rounded-md hover:bg-coffee-primary transition-all shadow-sm"
-                    onClick={() => setShowTicketModal(true)}
+                  <button 
+                    onClick={() => handleCreateTicket()}
+                    className="bg-coffee-dark border border-coffee-dark text-white px-4 py-2 rounded-md hover:bg-coffee-primary transition-colors shadow-sm"
                   >
-                    <FaPlus className="text-sm" /> New
+                    Create Ticket
                   </button>
                 </div>
               </div>

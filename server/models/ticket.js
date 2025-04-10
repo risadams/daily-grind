@@ -25,17 +25,17 @@ const TicketSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true
+    required: false
   },
   status: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Status',
-    required: true
+    required: false
   },
   priority: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Priority',
-    required: true
+    required: false
   },
   storyPoints: {
     type: Number,
@@ -100,10 +100,38 @@ TicketSchema.virtual('splashCount').get(function() {
   return sprintCount <= 1 ? 0 : sprintCount - 1;
 });
 
-// Update the updatedAt field before saving
-TicketSchema.pre('save', function(next) {
+// Update the updatedAt field before saving and set default status and priority if not provided
+TicketSchema.pre('save', async function(next) {
   this.updatedAt = new Date(Date.now()).toISOString();
-  next();
+  
+  try {
+    // If no status is provided, set to default "To Do" or "Backlog" status
+    if (!this.status) {
+      const Status = mongoose.model('Status');
+      // Try to find "To Do" status first, then "Backlog", then just use first status
+      const defaultStatus = await Status.findOne({ name: { $in: ['To Do', 'ToDo', 'Backlog'] } })
+        || await Status.findOne();
+        
+      if (defaultStatus) {
+        this.status = defaultStatus._id;
+      }
+    }
+    
+    // If no priority is provided, set to default "Medium" priority
+    if (!this.priority) {
+      const Priority = mongoose.model('Priority');
+      const defaultPriority = await Priority.findOne({ name: 'Medium' })
+        || await Priority.findOne();
+        
+      if (defaultPriority) {
+        this.priority = defaultPriority._id;
+      }
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 const Ticket = mongoose.model('Ticket', TicketSchema);

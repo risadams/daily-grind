@@ -1,13 +1,12 @@
-FROM node:18-alpine
+FROM node:current-slim
 
 # Set working directory
 WORKDIR /app
 
 # Install dependencies
 COPY package.json package-lock.json* ./
-RUN npm install
-
-# No need to copy source files as they will be mounted as a volume
+# Use --legacy-peer-deps to ensure all dependencies are installed even with peer dependency conflicts
+RUN npm install --legacy-peer-deps
 
 # Expose the API port
 EXPOSE 5000

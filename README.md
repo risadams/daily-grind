@@ -24,9 +24,6 @@ DailyGrind is an open-source ticket tracking system designed specifically for Sc
 
 - Node.js (>=14.0.0)
 - npm or yarn package manager
-- Firebase account and project
-- Firebase CLI (`npm install -g firebase-tools`)
-- Valid Firebase configuration (see FIREBASE-SETUP.md for details)
 
 ### Installation
 

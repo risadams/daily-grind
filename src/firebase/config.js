@@ -1,5 +1,4 @@
 // This file has been replaced with MongoDB configuration
-// The application now uses a local MongoDB database instead of Firebase
 
 // MongoDB connection is configured in server/config/mongodb/connection.js
 // Authentication is handled via JWT tokens

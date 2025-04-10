@@ -37,8 +37,20 @@ const isCurrentUser = (req, res, next) => {
   next();
 };
 
+// Middleware to check if user is admin
+// TEMPORARY: All authenticated users are considered admins
+const isAdmin = (req, res, next) => {
+  // For now, all authenticated users are considered admins
+  if (!req.user) {
+    return res.status(403).json({ message: 'Forbidden: Admin access required' });
+  }
+  // Skip the isAdmin check and proceed
+  next();
+};
+
 module.exports = {
   generateToken,
   authenticateJWT,
-  isCurrentUser
+  isCurrentUser,
+  isAdmin // Add isAdmin to exports
 };

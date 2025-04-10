@@ -30,6 +30,7 @@ import PricingPage from './pages/PricingPage.js';
 import BlogPage from './pages/BlogPage.js';
 import SupportPage from './pages/SupportPage.js';
 import AuthCallback from './pages/AuthCallback.js';
+import ProjectsPage from './pages/ProjectsPage.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -68,6 +69,7 @@ const App = () => {
                       <Route path="/tickets" element={<AllTickets />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/backlog" element={<BacklogPage />} />
+                      <Route path="/projects" element={<ProjectsPage />} />
                     </Route>
                   </Route>
                   

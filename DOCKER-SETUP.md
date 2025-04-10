@@ -20,8 +20,9 @@ docker-compose -f docker-compose.dev.yml up --build
 ```
 
 Access your application at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000/api
+
+- Frontend: <http://localhost:3000>
+- Backend API: <http://localhost:5000/api>
 
 ## Quick Start for Production
 
@@ -35,7 +36,7 @@ docker-compose up -d
 docker-compose up -d --build
 ```
 
-Access your production application at http://localhost:5000
+Access your production application at <http://localhost:5000>
 
 ## Docker Architecture
 
@@ -54,7 +55,8 @@ This Docker setup consists of:
 ## Data Persistence
 
 Your data is stored in Docker volumes:
-- `mongodb_data`: Database files 
+
+- `mongodb_data`: Database files
 - `app_uploads`: Uploaded files (profile images, attachments, etc.)
 
 These volumes persist even if you remove the containers.
@@ -62,23 +64,12 @@ These volumes persist even if you remove the containers.
 ## Configuration
 
 Environment variables are defined in the docker-compose files:
+
 - `MONGODB_URI`: Connection string for MongoDB
 - `JWT_SECRET`: Secret key for authentication tokens
 - Other app-specific settings
 
 You can modify these in the docker-compose files or create a `.env` file that Docker Compose will use automatically.
-
-## Migration from Firebase
-
-If you have existing Firebase data to migrate:
-
-```bash
-# 1. Start the containers
-docker-compose -f docker-compose.dev.yml up -d
-
-# 2. Run the migration script
-docker-compose -f docker-compose.dev.yml exec server npm run migrate
-```
 
 ## Common Commands
 
@@ -99,14 +90,18 @@ docker-compose -f docker-compose.dev.yml restart server
 ## Troubleshooting
 
 **MongoDB connection issues**:
+
 - Check if MongoDB container is running: `docker ps`
 - Verify connection string in the server logs
 
 **Server not starting**:
+
 - Check server logs: `docker-compose -f docker-compose.dev.yml logs server`
 
 **Client not connecting to backend**:
+
 - Verify REACT_APP_API_URL is set correctly
 
 **Port conflicts**:
+
 - If ports 3000 or 5000 are already in use, modify the port mappings in docker-compose files

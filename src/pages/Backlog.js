@@ -42,7 +42,7 @@ export default function BacklogPage() {
     setTickets(formattedTickets);
   }, [allTickets]);
   
-  // Initialize board structure based on states from Firebase
+  // Initialize board structure based on states from DB
   useEffect(() => {
     if (!states || states.length === 0 || !isMounted.current) return;
     
@@ -361,7 +361,7 @@ export default function BacklogPage() {
       setSwimlanes(newSwimlanes);
     }
     
-    // Update ticket state in Firebase
+    // Update ticket state
     const newStateId = columnToStateMap[destination.droppableId];
     if (newStateId) {
       try {

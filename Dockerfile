@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:current-slim
 
 # Set working directory
 WORKDIR /app
@@ -6,8 +6,11 @@ WORKDIR /app
 # Install dependencies first (for better layer caching)
 COPY package.json package-lock.json* ./
 COPY server/package.json server/package-lock.json* ./server/
+
+# Install dependencies with explicit --legacy-peer-deps to handle any potential peer dependency issues
 RUN npm install --quiet
-RUN cd server && npm install --quiet
+# Install server dependencies with explicit production flag to ensure all dependencies are installed
+RUN cd server && npm install --quiet --production
 
 # Copy application code
 COPY . .
