@@ -33,7 +33,8 @@ export default function AllTicketsPage() {
   const [filters, setFilters] = useState({
     status: '',
     type: '',
-    priority: ''
+    priority: '',
+    storyPoints: ''
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -67,26 +68,63 @@ export default function AllTicketsPage() {
 
     // Apply status filter
     if (filters.status) {
-      result = result.filter(ticket => 
-        (ticket.status && ticket.status.toString() === filters.status) || 
-        (ticket.status && ticket.status._id && ticket.status._id.toString() === filters.status)
-      );
+      result = result.filter(ticket => {
+        if (!ticket.status) return false;
+
+        const ticketStatusId = typeof ticket.status === 'object' && ticket.status._id 
+          ? ticket.status._id.toString() 
+          : ticket.status.toString();
+          
+        return ticketStatusId === filters.status;
+      });
     }
 
     // Apply type filter (optional in our model)
     if (filters.type) {
-      result = result.filter(ticket => 
-        (ticket.type && ticket.type.toString() === filters.type) || 
-        (ticket.feature && ticket.feature.toString() === filters.type)
-      );
+      result = result.filter(ticket => {
+        if (!ticket.type && !ticket.feature) return false;
+        
+        // Check type field if exists
+        if (ticket.type) {
+          const ticketTypeId = typeof ticket.type === 'object' && ticket.type._id 
+            ? ticket.type._id.toString() 
+            : ticket.type.toString();
+          
+          if (ticketTypeId === filters.type) return true;
+        }
+        
+        // Check feature field if exists
+        if (ticket.feature) {
+          const ticketFeatureId = typeof ticket.feature === 'object' && ticket.feature._id 
+            ? ticket.feature._id.toString() 
+            : ticket.feature.toString();
+          
+          if (ticketFeatureId === filters.type) return true;
+        }
+        
+        return false;
+      });
     }
 
     // Apply priority filter
     if (filters.priority) {
-      result = result.filter(ticket => 
-        (ticket.priority && ticket.priority.toString() === filters.priority) || 
-        (ticket.priority && ticket.priority._id && ticket.priority._id.toString() === filters.priority)
-      );
+      result = result.filter(ticket => {
+        if (!ticket.priority) return false;
+
+        const ticketPriorityId = typeof ticket.priority === 'object' && ticket.priority._id 
+          ? ticket.priority._id.toString() 
+          : ticket.priority.toString();
+          
+        return ticketPriorityId === filters.priority;
+      });
+    }
+    
+    // Apply story points filter
+    if (filters.storyPoints) {
+      result = result.filter(ticket => {
+        const ticketPoints = ticket.storyPoints || 0;
+        return ticketPoints === Number(filters.storyPoints);
+      });
     }
 
     // Apply sorting
@@ -149,59 +187,103 @@ export default function AllTicketsPage() {
   const getStatusName = (status) => {
     if (!status) return 'Unknown';
     
-    // If it's already a string name, return it
-    if (typeof status === 'string' && status.length < 24) {
-      return status.charAt(0).toUpperCase() + status.slice(1);
-    }
-    
-    // If it's a MongoDB reference that's populated
-    if (status.name) {
-      return status.name;
-    }
-    
-    // If it's an ObjectId reference that's not populated
-    if (states && Array.isArray(states)) {
-      const statusId = typeof status === 'object' && status !== null ? status.toString() : status;
-      const statusObj = states.find(s => 
-        s && s._id && (
-          s._id === statusId || 
-          (s._id.toString && s._id.toString() === statusId)
-        )
-      );
+    try {
+      // If status is an object with a name property (already populated reference)
+      if (typeof status === 'object' && status.name) {
+        return status.name;
+      }
       
-      return statusObj ? statusObj.name : 'Unknown';
+      // Get status ID string
+      const statusIdStr = typeof status === 'object' && status._id 
+        ? status._id.toString() 
+        : String(status);
+      
+      // Check if states array exists
+      if (!states || !Array.isArray(states)) {
+        console.log('States array is invalid:', states);
+        return 'Unknown';
+      }
+      
+      // Try to find a matching state
+      // First, try to find by MongoDB ObjectID (_id property)
+      const stateByMongoId = states.find(s => 
+        s && s._id && String(s._id) === statusIdStr
+      );
+      if (stateByMongoId) {
+        return stateByMongoId.name;
+      }
+      
+      // Then, try to find by legacy ID (id property from mock data)
+      const stateByLegacyId = states.find(s => 
+        s && s.id && String(s.id) === statusIdStr
+      );
+      if (stateByLegacyId) {
+        return stateByLegacyId.name;
+      }
+      
+      // If no match found, check if statusIdStr itself is a status name
+      if (typeof statusIdStr === 'string' && statusIdStr.length < 24) {
+        // This might be a status name rather than an ID
+        return statusIdStr.charAt(0).toUpperCase() + statusIdStr.slice(1);
+      }
+      
+      console.log('No matching status found for:', statusIdStr);
+      return 'Unknown';
+    } catch (error) {
+      console.error('Error in getStatusName:', error);
+      return 'Unknown';
     }
-    
-    return 'Unknown';
   };
 
   const getPriorityName = (priority) => {
     if (!priority) return 'Medium';
     
-    // If it's already a string name, return it
-    if (typeof priority === 'string' && priority.length < 24) {
-      return priority.charAt(0).toUpperCase() + priority.slice(1);
-    }
-    
-    // If it's a MongoDB reference that's populated
-    if (priority.name) {
-      return priority.name;
-    }
-    
-    // If it's an ObjectId reference that's not populated
-    if (priorities && Array.isArray(priorities)) {
-      const priorityId = typeof priority === 'object' && priority !== null ? priority.toString() : priority;
-      const priorityObj = priorities.find(p => 
-        p && p._id && (
-          p._id === priorityId || 
-          (p._id.toString && p._id.toString() === priorityId)
-        )
-      );
+    try {
+      // If priority is an object with a name property (already populated reference)
+      if (typeof priority === 'object' && priority.name) {
+        return priority.name;
+      }
       
-      return priorityObj ? priorityObj.name : 'Medium';
+      // Get priority ID string
+      const priorityIdStr = typeof priority === 'object' && priority._id 
+        ? priority._id.toString() 
+        : String(priority);
+      
+      // Check if priorities array exists
+      if (!priorities || !Array.isArray(priorities)) {
+        console.log('Priorities array is invalid:', priorities);
+        return 'Medium';
+      }
+      
+      // Try to find a matching priority
+      // First, try to find by MongoDB ObjectID (_id property)
+      const priorityByMongoId = priorities.find(p => 
+        p && p._id && String(p._id) === priorityIdStr
+      );
+      if (priorityByMongoId) {
+        return priorityByMongoId.name;
+      }
+      
+      // Then, try to find by legacy ID (id property from mock data)
+      const priorityByLegacyId = priorities.find(p => 
+        p && p.id && String(p.id) === priorityIdStr
+      );
+      if (priorityByLegacyId) {
+        return priorityByLegacyId.name;
+      }
+      
+      // If no match found, check if priorityIdStr itself is a priority name
+      if (typeof priorityIdStr === 'string' && priorityIdStr.length < 24) {
+        // This might be a priority name rather than an ID
+        return priorityIdStr.charAt(0).toUpperCase() + priorityIdStr.slice(1);
+      }
+      
+      console.log('No matching priority found for:', priorityIdStr);
+      return 'Medium';
+    } catch (error) {
+      console.error('Error in getPriorityName:', error);
+      return 'Medium';
     }
-    
-    return 'Medium';
   };
 
   const getFeatureName = (feature) => {
@@ -284,13 +366,14 @@ export default function AllTicketsPage() {
     setFilters({
       status: '',
       type: '',
-      priority: ''
+      priority: '',
+      storyPoints: ''
     });
     setSearchTerm('');
   };
 
   const hasActiveFilters = () => {
-    return searchTerm || filters.status || filters.type || filters.priority;
+    return searchTerm || filters.status || filters.type || filters.priority || filters.storyPoints;
   };
 
   const formatDate = (dateString) => {
