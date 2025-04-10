@@ -411,7 +411,7 @@ const Dashboard = () => {
                   <div className="inline-flex items-center rounded-md shadow-sm">
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-l-md ${filter === 'all' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50 border-r border-gray-200'}`}
                       onClick={() => setFilter('all')}
                     >
@@ -419,7 +419,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium ${filter === 'todo' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50 border-r border-gray-200'}`}
                       onClick={() => setFilter('todo')}
                     >
@@ -427,7 +427,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium ${filter === 'in-progress' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50 border-r border-gray-200'}`}
                       onClick={() => setFilter('in-progress')}
                     >
@@ -435,7 +435,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-r-md ${filter === 'closed' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50'}`}
                       onClick={() => setFilter('closed')}
                     >

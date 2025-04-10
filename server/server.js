@@ -6,6 +6,14 @@ const connectToMongoDB = require('./config/mongodb/connection');
 const passport = require('./config/auth/passport');
 const userRoutes = require('./routes/users');
 const taskRoutes = require('./routes/tasks');
+const statusRoutes = require('./routes/status');
+const priorityRoutes = require('./routes/priority');
+const linkTypeRoutes = require('./routes/linkTypes');
+const sprintRoutes = require('./routes/sprints');
+const teamRoutes = require('./routes/teams');
+const retrospectiveRoutes = require('./routes/retrospectives');
+const labelRoutes = require('./routes/labels');
+const roleRoutes = require('./routes/roles');
 
 // Initialize Express app
 const app = express();
@@ -48,6 +56,14 @@ app.get('/api/health', (req, res) => {
 // API routes
 app.use('/api/users', userRoutes);
 app.use('/api/tickets', taskRoutes);
+app.use('/api/statuses', statusRoutes);
+app.use('/api/priorities', priorityRoutes);
+app.use('/api/link-types', linkTypeRoutes);
+app.use('/api/sprints', sprintRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/retrospectives', retrospectiveRoutes);
+app.use('/api/labels', labelRoutes);
+app.use('/api/roles', roleRoutes);
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {

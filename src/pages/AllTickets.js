@@ -8,7 +8,7 @@ import TicketFormDialog from '../components/TicketFormDialog.js';
 import PageHeader from '../components/PageHeader.js';
 
 export default function AllTicketsPage() {
-  const { tickets, allTickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
+  const { tickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
 
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,37 +36,40 @@ export default function AllTicketsPage() {
 
   // Filter and sort tickets when dependencies change
   useEffect(() => {
-    let result = [...allTickets];
+    // Make sure tickets is an array
+    let result = Array.isArray(tickets) ? [...tickets] : [];
 
     // Apply search term filter
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
       result = result.filter(ticket =>
-        ticket.title.toLowerCase().includes(lowercasedTerm) ||
+        ticket.title?.toLowerCase().includes(lowercasedTerm) ||
         (ticket.description && ticket.description.toLowerCase().includes(lowercasedTerm))
       );
     }
 
-    // Apply specific filters
+    // Apply specific filters - use status instead of stateId
     if (filters.status) {
-      result = result.filter(ticket => ticket.stateId === filters.status);
+      result = result.filter(ticket => ticket.status === filters.status || ticket.stateId === filters.status);
     }
 
+    // Use type or typeId depending on what's available
     if (filters.type) {
-      result = result.filter(ticket => ticket.typeId === filters.type);
+      result = result.filter(ticket => ticket.type === filters.type || ticket.typeId === filters.type);
     }
 
+    // Use priority or priorityId depending on what's available
     if (filters.priority) {
-      result = result.filter(ticket => ticket.priorityId === filters.priority);
+      result = result.filter(ticket => ticket.priority === filters.priority || ticket.priorityId === filters.priority);
     }
 
     // Apply sorting
     if (sortConfig.key) {
       result.sort((a, b) => {
-        // Handle special case for dates
-        if (sortConfig.key === 'creationDate') {
-          const dateA = new Date(a[sortConfig.key]);
-          const dateB = new Date(b[sortConfig.key]);
+        // For dates, check both creationDate and createdAt
+        if (sortConfig.key === 'creationDate' || sortConfig.key === 'createdAt') {
+          const dateA = new Date(a.createdAt || a.creationDate);
+          const dateB = new Date(b.createdAt || b.creationDate);
           return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
         }
 
@@ -82,7 +85,7 @@ export default function AllTicketsPage() {
     }
 
     setFilteredTickets(result);
-  }, [allTickets, searchTerm, filters, sortConfig]);
+  }, [tickets, searchTerm, filters, sortConfig]);
 
   // Add this debug useEffect
   useEffect(() => {
@@ -127,10 +130,10 @@ export default function AllTicketsPage() {
 
   const handleCloseTicket = async (ticketId) => {
     try {
-      const closedStateId = states.find(state => state.name === 'Closed')?.id;
-      if (!closedStateId) throw new Error('Could not find Closed state');
+      // Try to find Closed state from states array or use 'closed' string
+      const closedStateId = states.find(state => state.name === 'Closed')?.id || 'closed';
 
-      const result = await updateTicket(ticketId, { stateId: closedStateId });
+      const result = await updateTicket(ticketId, { status: closedStateId });
       if (result.success) {
         showSuccessMessage('Ticket closed successfully!');
       }
@@ -160,26 +163,82 @@ export default function AllTicketsPage() {
 
   // Helper function for getting formatted names
   const getTypeName = (typeId) => {
-    if (!typeId || !types || types.length === 0) return 'Unknown';
-    const searchId = typeof typeId === 'string' ? typeId : String(typeId);
-    const typeObj = types.find(type => String(type.id) === searchId);
-    return typeObj ? typeObj.name : 'Unknown';
+    if (!typeId) return 'Unknown';
+    
+    // If typeId is already a string name rather than an ID, return it directly
+    if (typeof typeId === 'string' && !typeId.match(/^[0-9a-fA-F]{24}$/)) {
+      return typeId.charAt(0).toUpperCase() + typeId.slice(1);
+    }
+    
+    // Otherwise, try to find the type by ID
+    if (types && types.length > 0) {
+      // Normalize ID for comparison
+      const searchId = String(typeId).trim();
+      
+      // Try multiple ways of matching
+      const typeObj = types.find(type => 
+        String(type.id) === searchId ||
+        String(type._id) === searchId ||
+        type.id === typeId ||
+        type._id === typeId
+      );
+      
+      if (typeObj) return typeObj.name;
+    }
+    
+    return 'Unknown';
   };
 
   const getStateName = (stateId) => {
-    if (!stateId || !states || states.length === 0) return 'Unknown';
-    const searchId = typeof stateId === 'string' ? stateId : String(stateId);
-    const stateObj = states.find(state => String(state.id) === searchId);
-    return stateObj ? stateObj.name : 'Unknown';
+    // If stateId is already a string name rather than an ID, return it directly
+    if (typeof stateId === 'string' && !stateId.match(/^[0-9a-fA-F]{24}$/)) {
+      return stateId.charAt(0).toUpperCase() + stateId.slice(1);
+    }
+    
+    // Otherwise, try to find the state by ID
+    if (states && states.length > 0) {
+      // Normalize ID for comparison
+      const searchId = String(stateId).trim();
+      
+      // Try multiple ways of matching
+      const stateObj = states.find(state => 
+        String(state.id) === searchId ||
+        String(state._id) === searchId ||
+        state.id === stateId ||
+        state._id === stateId
+      );
+      
+      if (stateObj) return stateObj.name;
+    }
+    
+    return stateId || 'Unknown';
   };
 
   const getPriorityName = (priorityId) => {
-    if (!priorityId || !priorities || priorities.length === 0) return 'Medium';
-    const searchId = typeof priorityId === 'string' ? priorityId : String(priorityId);
-    const priorityObj = priorities.find(priority => String(priority.id) === searchId);
-    return priorityObj ? priorityObj.name : 'Medium';
+    // If priorityId is already a string name rather than an ID, return it directly
+    if (typeof priorityId === 'string' && !priorityId.match(/^[0-9a-fA-F]{24}$/)) {
+      return priorityId.charAt(0).toUpperCase() + priorityId.slice(1);
+    }
+    
+    // Otherwise, try to find the priority by ID
+    if (priorities && priorities.length > 0) {
+      // Normalize ID for comparison
+      const searchId = String(priorityId).trim();
+      
+      // Try multiple ways of matching
+      const priorityObj = priorities.find(priority => 
+        String(priority.id) === searchId ||
+        String(priority._id) === searchId ||
+        priority.id === priorityId ||
+        priority._id === priorityId
+      );
+      
+      if (priorityObj) return priorityObj.name;
+    }
+    
+    return priorityId || 'Medium';
   };
-
+  
   const getPriorityColorClass = (priorityId) => {
     const priority = priorities.find(p => p.id === priorityId);
     if (!priority) return 'bg-gray-100 text-gray-800';
@@ -230,14 +289,21 @@ export default function AllTicketsPage() {
   const formatDate = (dateString) => {
     if (!dateString) return 'No Date';
 
-    const date = new Date(dateString);
+    try {
+      // Try to create a date regardless of format
+      const date = new Date(dateString);
 
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+      if (isNaN(date.getTime())) {
+        console.log('Invalid date format:', dateString);
+        return 'Invalid Date';
+      }
+
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return date.toLocaleDateString(undefined, options);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Error';
     }
-
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return date.toLocaleDateString(undefined, options);
   };
 
   const handleFilterChange = (e) => {

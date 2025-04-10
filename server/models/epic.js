@@ -1,23 +1,6 @@
 const mongoose = require('mongoose');
 
-const TicketLinkSchema = new mongoose.Schema({
-  linkedTicket: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Ticket',
-    required: true
-  },
-  linkType: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'LinkType',
-    required: true
-  },
-  createdAt: {
-    type: Date,
-    default: () => new Date(Date.now()).toISOString()
-  }
-});
-
-const TicketSchema = new mongoose.Schema({
+const EpicSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
@@ -26,6 +9,10 @@ const TicketSchema = new mongoose.Schema({
   description: {
     type: String,
     required: true
+  },
+  summary: {
+    type: String,
+    trim: true
   },
   status: {
     type: mongoose.Schema.Types.ObjectId,
@@ -37,37 +24,36 @@ const TicketSchema = new mongoose.Schema({
     ref: 'Priority',
     required: true
   },
+  labels: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Label'
+  }],
   storyPoints: {
     type: Number,
     min: 0,
     default: 0
   },
-  sprints: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Sprint'
-  }],
-  labels: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Label'
-  }],
-  feature: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Feature',
+  startDate: {
+    type: Date,
     default: null
   },
-  links: [TicketLinkSchema],
+  targetDate: {
+    type: Date,
+    default: null
+  },
+  teams: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team'
+  }],
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  },
-  assignedTo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  reviewedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
   },
   createdAt: {
     type: Date,
@@ -92,20 +78,21 @@ const TicketSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Calculate the splash count - number of times a ticket has "splashed" from one sprint to another
-TicketSchema.virtual('splashCount').get(function() {
-  // If the ticket is in 0 or 1 sprints, splashCount is 0
-  // Otherwise, splashCount is (number of sprints - 1)
-  const sprintCount = this.sprints ? this.sprints.length : 0;
-  return sprintCount <= 1 ? 0 : sprintCount - 1;
+// Virtual field for progress tracking - calculated based on associated features
+EpicSchema.virtual('progress').get(function() {
+  return {
+    planned: 0, // to be calculated dynamically
+    completed: 0, // to be calculated dynamically
+    percentage: 0 // to be calculated dynamically
+  };
 });
 
 // Update the updatedAt field before saving
-TicketSchema.pre('save', function(next) {
+EpicSchema.pre('save', function(next) {
   this.updatedAt = new Date(Date.now()).toISOString();
   next();
 });
 
-const Ticket = mongoose.model('Ticket', TicketSchema);
+const Epic = mongoose.model('Epic', EpicSchema);
 
-module.exports = Ticket;
+module.exports = Epic;
