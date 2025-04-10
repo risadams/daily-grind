@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { FaUser, FaTag, FaClock, FaArrowRight } from 'react-icons/fa/index.js';
-import { useDatabase } from '../context/DatabaseContext';
-import TaskDetail from './TaskDetail';
+import { useDatabase } from '../context/DatabaseContext.js';
+import TaskDetail from './TaskDetail.js';
 import './TaskCard.css';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext.js';
 
 const TaskCard = ({ task, showActions = true, compact = false, onClick = null }) => {
   const navigate = useNavigate();
