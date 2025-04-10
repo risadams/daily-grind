@@ -84,7 +84,7 @@ passport.use(new GoogleStrategy(
           displayName: profile.displayName,
           email: profile.emails[0].value,
           photoURL: profile.photos[0].value,
-          emailVerified: profile.emails[0].verified || true
+          emailVerified: profile.emails[0]?.verified || false
         });
         
         await user.save();
