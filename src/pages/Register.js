@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.js';
-import { FaGoogle, FaGithub, FaApple, FaMicrosoft, FaCoffee, FaEnvelope, FaLock, FaUserPlus } from 'react-icons/fa/index.js';
+import { FaGoogle, FaGithub, FaApple, FaMicrosoft, FaCoffee, FaEnvelope, FaLock, FaUserPlus, FaUser } from 'react-icons/fa/index.js';
 import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
 import '../styles/backgrounds.css';
 
 const Register = () => {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,10 +35,14 @@ const Register = () => {
       return setError('Password must be at least 6 characters');
     }
     
+    if (!displayName.trim()) {
+      return setError('Display name is required');
+    }
+    
     try {
       setError('');
       setLoading(true);
-      const result = await register(email, password);
+      const result = await register(email, password, displayName);
       
       if (result.success) {
         navigate('/dashboard');
@@ -119,6 +124,28 @@ const Register = () => {
         )}
         
         <form className="space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="display-name" className="block text-sm font-medium text-coffee-espresso">
+              Display Name
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaUser className="h-5 w-5 text-coffee-medium" />
+              </div>
+              <input
+                id="display-name"
+                name="displayName"
+                type="text"
+                autoComplete="name"
+                required
+                className="block w-full pl-10 pr-3 py-2 border-coffee-cream focus:ring-coffee-medium focus:border-coffee-medium rounded-md transition-all"
+                placeholder="Your display name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div>
             <label htmlFor="email-address" className="block text-sm font-medium text-coffee-espresso">
               Email address

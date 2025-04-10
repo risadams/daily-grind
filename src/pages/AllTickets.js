@@ -6,9 +6,26 @@ import Modal from '../components/Modal.js';
 import TicketDetail from '../components/TicketDetail.js';
 import TicketFormDialog from '../components/TicketFormDialog.js';
 import PageHeader from '../components/PageHeader.js';
+import { useAuth } from '../context/AuthContext.js';
+import { useTheme } from '../context/ThemeContext.js';
 
 export default function AllTicketsPage() {
-  const { tickets, allTickets, types, states, priorities, users, loading, error, createTicket, updateTicket, deleteTicket, getUserDisplayName } = useDatabase();
+  const { 
+    tickets, 
+    types, 
+    states, 
+    priorities, 
+    users, 
+    loading, 
+    error, 
+    createTicket, 
+    updateTicket, 
+    deleteTicket, 
+    getUserDisplayName 
+  } = useDatabase();
+  const { currentUser } = useAuth();
+  const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
 
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,7 +39,7 @@ export default function AllTicketsPage() {
 
   // State for sorting
   const [sortConfig, setSortConfig] = useState({
-    key: 'creationDate',
+    key: 'createdAt',
     direction: 'desc'
   });
 
@@ -36,45 +53,72 @@ export default function AllTicketsPage() {
 
   // Filter and sort tickets when dependencies change
   useEffect(() => {
-    let result = [...allTickets];
+    // Make sure tickets is an array
+    let result = Array.isArray(tickets) ? [...tickets] : [];
 
     // Apply search term filter
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
       result = result.filter(ticket =>
-        ticket.title.toLowerCase().includes(lowercasedTerm) ||
+        ticket.title?.toLowerCase().includes(lowercasedTerm) ||
         (ticket.description && ticket.description.toLowerCase().includes(lowercasedTerm))
       );
     }
 
-    // Apply specific filters
+    // Apply status filter
     if (filters.status) {
-      result = result.filter(ticket => ticket.stateId === filters.status);
+      result = result.filter(ticket => 
+        (ticket.status && ticket.status.toString() === filters.status) || 
+        (ticket.status && ticket.status._id && ticket.status._id.toString() === filters.status)
+      );
     }
 
+    // Apply type filter (optional in our model)
     if (filters.type) {
-      result = result.filter(ticket => ticket.typeId === filters.type);
+      result = result.filter(ticket => 
+        (ticket.type && ticket.type.toString() === filters.type) || 
+        (ticket.feature && ticket.feature.toString() === filters.type)
+      );
     }
 
+    // Apply priority filter
     if (filters.priority) {
-      result = result.filter(ticket => ticket.priorityId === filters.priority);
+      result = result.filter(ticket => 
+        (ticket.priority && ticket.priority.toString() === filters.priority) || 
+        (ticket.priority && ticket.priority._id && ticket.priority._id.toString() === filters.priority)
+      );
     }
 
     // Apply sorting
     if (sortConfig.key) {
       result.sort((a, b) => {
-        // Handle special case for dates
-        if (sortConfig.key === 'creationDate') {
+        // For dates
+        if (sortConfig.key === 'createdAt' || sortConfig.key === 'updatedAt') {
           const dateA = new Date(a[sortConfig.key]);
           const dateB = new Date(b[sortConfig.key]);
           return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
         }
 
-        // Handle other fields
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        // For other fields
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Handle object references
+        if (sortConfig.key === 'status' && a.status && b.status) {
+          aValue = getStatusName(a.status);
+          bValue = getStatusName(b.status);
+        } else if (sortConfig.key === 'priority' && a.priority && b.priority) {
+          aValue = getPriorityName(a.priority);
+          bValue = getPriorityName(b.priority);
+        } else if (sortConfig.key === 'assignedTo' && a.assignedTo && b.assignedTo) {
+          aValue = getUserDisplayName(a.assignedTo);
+          bValue = getUserDisplayName(b.assignedTo);
+        }
+
+        if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === 'asc' ? 1 : -1;
         }
         return 0;
@@ -82,16 +126,203 @@ export default function AllTicketsPage() {
     }
 
     setFilteredTickets(result);
-  }, [allTickets, searchTerm, filters, sortConfig]);
+  }, [tickets, searchTerm, filters, sortConfig]);
 
-  // Add this debug useEffect
-  useEffect(() => {
-    if (tickets.length > 0) {
-      console.log('Sample ticket:', tickets[0]);
+  // Table sorting handler
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
     }
-    console.log('Types:', types);
-    console.log('States:', states);
-  }, [tickets, types, states]);
+    setSortConfig({ key, direction });
+  };
+
+  // Helper function to display sort direction indicator
+  const getSortIcon = (columnName) => {
+    if (sortConfig.key !== columnName) return <FaSort className="inline ml-1 text-gray-400" />;
+    return sortConfig.direction === 'asc' ?
+      <FaSortUp className="inline ml-1 text-coffee-dark" /> :
+      <FaSortDown className="inline ml-1 text-coffee-dark" />;
+  };
+
+  // Helper functions for displaying ticket data with MongoDB references
+  const getStatusName = (status) => {
+    if (!status) return 'Unknown';
+    
+    // If it's already a string name, return it
+    if (typeof status === 'string' && status.length < 24) {
+      return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+    
+    // If it's a MongoDB reference that's populated
+    if (status.name) {
+      return status.name;
+    }
+    
+    // If it's an ObjectId reference that's not populated
+    if (states && Array.isArray(states)) {
+      const statusId = typeof status === 'object' && status !== null ? status.toString() : status;
+      const statusObj = states.find(s => 
+        s && s._id && (
+          s._id === statusId || 
+          (s._id.toString && s._id.toString() === statusId)
+        )
+      );
+      
+      return statusObj ? statusObj.name : 'Unknown';
+    }
+    
+    return 'Unknown';
+  };
+
+  const getPriorityName = (priority) => {
+    if (!priority) return 'Medium';
+    
+    // If it's already a string name, return it
+    if (typeof priority === 'string' && priority.length < 24) {
+      return priority.charAt(0).toUpperCase() + priority.slice(1);
+    }
+    
+    // If it's a MongoDB reference that's populated
+    if (priority.name) {
+      return priority.name;
+    }
+    
+    // If it's an ObjectId reference that's not populated
+    if (priorities && Array.isArray(priorities)) {
+      const priorityId = typeof priority === 'object' && priority !== null ? priority.toString() : priority;
+      const priorityObj = priorities.find(p => 
+        p && p._id && (
+          p._id === priorityId || 
+          (p._id.toString && p._id.toString() === priorityId)
+        )
+      );
+      
+      return priorityObj ? priorityObj.name : 'Medium';
+    }
+    
+    return 'Medium';
+  };
+
+  const getFeatureName = (feature) => {
+    if (!feature) return 'None';
+    
+    // If it's already a string name, return it
+    if (typeof feature === 'string' && feature.length < 24) {
+      return feature;
+    }
+    
+    // If it's a populated MongoDB reference
+    if (feature.name) {
+      return feature.name;
+    }
+    
+    // We'd need to fetch or lookup the feature by ID
+    return `Feature ${feature.toString().substring(0, 6)}`;
+  };
+
+  const getAssigneeName = (assignedTo) => {
+    if (!assignedTo) return 'Unassigned';
+    
+    // If it's already a user object with a displayName
+    if (typeof assignedTo === 'object' && assignedTo.displayName) {
+      return assignedTo.displayName;
+    }
+    
+    // If it's already a user object with an email but no displayName
+    if (typeof assignedTo === 'object' && assignedTo.email) {
+      return assignedTo.email.split('@')[0];
+    }
+    
+    // If it's an ID, use getUserDisplayName which we improved in DatabaseContext
+    return getUserDisplayName(assignedTo) || 'Unknown User';
+  };
+  
+  const getPriorityColorClass = (priority) => {
+    const priorityName = getPriorityName(priority).toLowerCase();
+    
+    switch (priorityName) {
+      case 'critical':
+        return 'bg-red-100 text-red-800 border border-red-200';
+      case 'high':
+        return 'bg-orange-100 text-orange-800 border border-orange-200';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      case 'low':
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'trivial':
+        return 'bg-green-100 text-green-800 border border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
+    }
+  };
+
+  const getStatusColorClass = (status) => {
+    const statusName = getStatusName(status).toLowerCase();
+    
+    switch (statusName) {
+      case 'done':
+      case 'closed':
+        return 'bg-green-100 text-green-800 border border-green-200';
+      case 'in progress':
+      case 'inprogress':
+        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      case 'in review':
+      case 'qa':
+        return 'bg-purple-100 text-purple-800 border border-purple-200';
+      case 'to do':
+      case 'todo':
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'backlog':
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
+      default:
+        return 'bg-coffee-light text-coffee-dark border border-coffee-medium';
+    }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      type: '',
+      priority: ''
+    });
+    setSearchTerm('');
+  };
+
+  const hasActiveFilters = () => {
+    return searchTerm || filters.status || filters.type || filters.priority;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No Date';
+
+    try {
+      // Try to create a date regardless of format
+      const date = new Date(dateString);
+
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return date.toLocaleDateString(undefined, options);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Error';
+    }
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  const showSuccessMessage = (message) => {
+    setTicketActionSuccess({ show: true, message });
+    setTimeout(() => {
+      setTicketActionSuccess({ show: false, message: '' });
+    }, 3000);
+  };
 
   // Helper functions for ticket operations
   const handleCreateTicket = async (ticketData) => {
@@ -112,7 +343,7 @@ export default function AllTicketsPage() {
     try {
       if (!selectedTicket) throw new Error('No ticket selected for update');
 
-      const result = await updateTicket(selectedTicket.id, ticketData);
+      const result = await updateTicket(selectedTicket._id, ticketData);
       if (result.success) {
         showSuccessMessage('Ticket updated successfully!');
         setShowEditModal(false);
@@ -127,10 +358,17 @@ export default function AllTicketsPage() {
 
   const handleCloseTicket = async (ticketId) => {
     try {
-      const closedStateId = states.find(state => state.name === 'Closed')?.id;
-      if (!closedStateId) throw new Error('Could not find Closed state');
+      // Find "Done" status from states array
+      const doneStatus = states.find(state => 
+        state.name === 'Done' || 
+        state.name === 'Closed'
+      );
+      
+      if (!doneStatus) {
+        throw new Error('Could not find Done/Closed status');
+      }
 
-      const result = await updateTicket(ticketId, { stateId: closedStateId });
+      const result = await updateTicket(ticketId, { status: doneStatus._id });
       if (result.success) {
         showSuccessMessage('Ticket closed successfully!');
       }
@@ -141,119 +379,23 @@ export default function AllTicketsPage() {
     }
   };
 
-  // Table sorting handler
-  const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+  const handleDeleteTicket = async (ticketId) => {
+    try {
+      const result = await deleteTicket(ticketId);
+      if (result.success) {
+        showSuccessMessage('Ticket deleted successfully!');
+        setShowDeleteModal(false);
+        setSelectedTicket(null);
+      }
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
+      setTicketActionSuccess({ show: true, message: 'Failed to delete ticket. Please try again.' });
+      setTimeout(() => setTicketActionSuccess({ show: false, message: '' }), 3000);
     }
-    setSortConfig({ key, direction });
-  };
-
-  // Helper function to display sort direction indicator
-  const getSortIcon = (columnName) => {
-    if (sortConfig.key !== columnName) return <FaSort className="inline ml-1 text-gray-400" />;
-    return sortConfig.direction === 'asc' ?
-      <FaSortUp className="inline ml-1 text-coffee-dark" /> :
-      <FaSortDown className="inline ml-1 text-coffee-dark" />;
-  };
-
-  // Helper function for getting formatted names
-  const getTypeName = (typeId) => {
-    if (!typeId || !types || types.length === 0) return 'Unknown';
-    const searchId = typeof typeId === 'string' ? typeId : String(typeId);
-    const typeObj = types.find(type => String(type.id) === searchId);
-    return typeObj ? typeObj.name : 'Unknown';
-  };
-
-  const getStateName = (stateId) => {
-    if (!stateId || !states || states.length === 0) return 'Unknown';
-    const searchId = typeof stateId === 'string' ? stateId : String(stateId);
-    const stateObj = states.find(state => String(state.id) === searchId);
-    return stateObj ? stateObj.name : 'Unknown';
-  };
-
-  const getPriorityName = (priorityId) => {
-    if (!priorityId || !priorities || priorities.length === 0) return 'Medium';
-    const searchId = typeof priorityId === 'string' ? priorityId : String(priorityId);
-    const priorityObj = priorities.find(priority => String(priority.id) === searchId);
-    return priorityObj ? priorityObj.name : 'Medium';
-  };
-
-  const getPriorityColorClass = (priorityId) => {
-    const priority = priorities.find(p => p.id === priorityId);
-    if (!priority) return 'bg-gray-100 text-gray-800';
-    
-    switch (priority.name.toLowerCase()) {
-      case 'high':
-        return 'bg-red-100 text-red-800 border border-red-200';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'low':
-        return 'bg-green-100 text-green-800 border border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
-  };
-
-  const getStatusColorClass = (stateId) => {
-    const stateName = getStateName(stateId).toLowerCase();
-    
-    if (stateName === 'closed') {
-      return 'bg-green-100 text-green-800 border border-green-200';
-    } else if (stateName === 'in progress' || stateName === 'inprogress') {
-      return 'bg-blue-100 text-blue-800 border border-blue-200';
-    } else if (stateName === 'in review') {
-      return 'bg-purple-100 text-purple-800 border border-purple-200';
-    } else if (stateName === 'to do' || stateName === 'todo') {
-      return 'bg-gray-100 text-gray-800 border border-gray-200';
-    } else if (stateName === "won't fix") {
-      return 'bg-red-100 text-red-800 border border-red-200';
-    } else {
-      return 'bg-coffee-light text-coffee-dark border border-coffee-medium';
-    }
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      status: '',
-      type: '',
-      priority: ''
-    });
-    setSearchTerm('');
-  };
-
-  const hasActiveFilters = () => {
-    return searchTerm || filters.status || filters.type || filters.priority;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'No Date';
-
-    const date = new Date(dateString);
-
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date';
-    }
-
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return date.toLocaleDateString(undefined, options);
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-  };
-
-  const showSuccessMessage = (message) => {
-    setTicketActionSuccess({ show: true, message });
-    setTimeout(() => {
-      setTicketActionSuccess({ show: false, message: '' });
-    }, 3000);
   };
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
+    <div className={`px-4 py-6 sm:px-6 lg:px-8 ${isDarkMode ? 'bg-dark-primary' : 'bg-gray-50'} min-h-screen`}>
       {/* Success message alert */}
       {ticketActionSuccess.show && (
         <div className="mb-4 p-4 rounded-md bg-green-50 border border-green-200 text-green-800 shadow-md flex justify-between items-center">
@@ -280,7 +422,7 @@ export default function AllTicketsPage() {
       />
 
       {/* Filter and Search Bar */}
-      <div className="bg-white shadow-md rounded-xl mb-6 p-4 transition-all duration-150">
+      <div className={`${isDarkMode ? 'bg-dark-secondary' : 'bg-white'} shadow-md rounded-xl mb-6 p-4 transition-all duration-150`}>
         <div className="flex flex-col space-y-4">
           {/* Top row with search and buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -288,11 +430,11 @@ export default function AllTicketsPage() {
             <div className="w-full sm:w-1/2">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <FaSearch className="text-coffee-medium" />
+                  <FaSearch className={`${isDarkMode ? 'text-dark-text' : 'text-coffee-medium'}`} />
                 </div>
                 <input
                   type="text"
-                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg block w-full pl-10 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-light transition-all"
+                  className={`${isDarkMode ? 'bg-dark-input border-dark-border text-dark-text' : 'bg-gray-50 border-gray-200 text-coffee-dark'} border rounded-lg block w-full pl-10 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-light transition-all`}
                   placeholder="Search tickets by title or description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -305,8 +447,12 @@ export default function AllTicketsPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all
                   ${showFilters 
-                    ? 'bg-coffee-light text-coffee-dark border-coffee-medium' 
-                    : 'bg-white text-coffee-medium border-gray-200 hover:bg-gray-50'}`}
+                    ? isDarkMode 
+                      ? 'bg-dark-hover text-dark-text border-dark-border' 
+                      : 'bg-coffee-light text-coffee-dark border-coffee-medium' 
+                    : isDarkMode
+                      ? 'bg-dark-secondary text-dark-text border-dark-border hover:bg-dark-hover'
+                      : 'bg-white text-coffee-medium border-gray-200 hover:bg-gray-50'}`}
               >
                 <FaFilter /> Filters {hasActiveFilters() && <span className="bg-coffee-primary text-white text-xs w-5 h-5 rounded-full inline-flex items-center justify-center">!</span>}
               </button>
@@ -314,17 +460,21 @@ export default function AllTicketsPage() {
               {hasActiveFilters() && (
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                    isDarkMode 
+                      ? 'border-dark-border text-dark-text hover:bg-dark-hover' 
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  } transition-all`}
                 >
                   <FaTimes /> Clear
                 </button>
               )}
               
-              <button
-                className="flex items-center gap-2 px-4 py-2 bg-coffee-dark text-white rounded-lg hover:bg-coffee-primary transition-all shadow-sm"
-                onClick={() => setShowTicketModal(true)}
+              <button 
+                onClick={() => setShowTicketModal(true)} 
+                className="bg-coffee-dark border border-coffee-dark text-white px-4 py-2 rounded-lg hover:bg-coffee-primary transition-colors shadow-sm"
               >
-                <FaPlus className="text-sm" /> New Ticket
+                <FaPlus className="inline-block mr-1" /> Create Ticket
               </button>
             </div>
           </div>
@@ -333,46 +483,46 @@ export default function AllTicketsPage() {
           {showFilters && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-gray-100 animate-fadeIn">
               <div>
-                <label className="block text-sm font-medium text-coffee-dark mb-1">Status</label>
+                <label className={`block text-sm font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} mb-1`}>Status</label>
                 <select
                   name="status"
                   value={filters.status}
                   onChange={handleFilterChange}
-                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light"
+                  className={`${isDarkMode ? 'bg-dark-input border-dark-border text-dark-text' : 'bg-gray-50 border-gray-200 text-coffee-dark'} border rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light`}
                 >
                   <option value="">All Statuses</option>
-                  {states.map(state => (
-                    <option key={state.id} value={state.id}>{state.name}</option>
+                  {states && states.map(state => (
+                    <option key={state._id} value={state._id}>{state.name}</option>
                   ))}
                 </select>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-coffee-dark mb-1">Type</label>
-                <select
-                  name="type"
-                  value={filters.type}
-                  onChange={handleFilterChange}
-                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light"
-                >
-                  <option value="">All Types</option>
-                  {types.map(type => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-coffee-dark mb-1">Priority</label>
+                <label className={`block text-sm font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} mb-1`}>Priority</label>
                 <select
                   name="priority"
                   value={filters.priority}
                   onChange={handleFilterChange}
-                  className="bg-gray-50 border border-gray-200 text-coffee-dark rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light"
+                  className={`${isDarkMode ? 'bg-dark-input border-dark-border text-dark-text' : 'bg-gray-50 border-gray-200 text-coffee-dark'} border rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light`}
                 >
                   <option value="">All Priorities</option>
                   {priorities && priorities.map(priority => (
-                    <option key={priority.id} value={priority.id}>{priority.name}</option>
+                    <option key={priority._id} value={priority._id}>{priority.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} mb-1`}>Story Points</label>
+                <select
+                  name="storyPoints"
+                  value={filters.storyPoints}
+                  onChange={handleFilterChange}
+                  className={`${isDarkMode ? 'bg-dark-input border-dark-border text-dark-text' : 'bg-gray-50 border-gray-200 text-coffee-dark'} border rounded-lg w-full p-2 focus:outline-none focus:ring-2 focus:ring-coffee-light`}
+                >
+                  <option value="">All Points</option>
+                  {[0, 1, 2, 3, 5, 8, 13].map(points => (
+                    <option key={points} value={points}>{points}</option>
                   ))}
                 </select>
               </div>
@@ -383,20 +533,20 @@ export default function AllTicketsPage() {
 
       {/* Ticket Stats */}
       {filteredTickets.length > 0 && (
-        <div className="flex items-center mb-4 text-sm text-coffee-medium">
+        <div className={`flex items-center mb-4 text-sm ${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>
           <span className="mr-2">Displaying {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}</span>
           {hasActiveFilters() && (
-            <span className="bg-coffee-light px-2 py-1 rounded-md text-coffee-dark">Filtered results</span>
+            <span className={`${isDarkMode ? 'bg-dark-hover text-dark-text' : 'bg-coffee-light text-coffee-dark'} px-2 py-1 rounded-md`}>Filtered results</span>
           )}
         </div>
       )}
 
       {/* Ticket Grid */}
-      <div className="bg-white shadow-md rounded-xl overflow-hidden transition-all duration-150">
+      <div className={`${isDarkMode ? 'bg-dark-secondary' : 'bg-white'} shadow-md rounded-xl overflow-hidden transition-all duration-150`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center p-16">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-coffee-primary mb-4"></div>
-            <p className="text-coffee-medium">Brewing your tickets...</p>
+            <p className={`${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>Brewing your tickets...</p>
           </div>
         ) : error ? (
           <div className="p-10 text-center">
@@ -406,9 +556,9 @@ export default function AllTicketsPage() {
               </svg>
             </div>
             <p className="text-red-500 font-medium mb-2">Something went wrong</p>
-            <p className="text-gray-500 mb-4">{error}</p>
+            <p className={`${isDarkMode ? 'text-dark-secondary' : 'text-gray-500'} mb-4`}>{error}</p>
             <button
-              className="bg-coffee-primary text-white px-4 py-2 rounded-lg hover:bg-coffee-dark transition-colors shadow-sm"
+              className="bg-coffee-dark border border-coffee-dark text-white px-4 py-2 rounded-lg hover:bg-coffee-primary transition-colors shadow-sm"
               onClick={() => window.location.reload()}
             >
               Retry
@@ -416,13 +566,13 @@ export default function AllTicketsPage() {
           </div>
         ) : filteredTickets.length === 0 ? (
           <div className="text-center p-16">
-            <div className="mx-auto h-16 w-16 rounded-full bg-coffee-light flex items-center justify-center mb-4">
-              <svg className="h-8 w-8 text-coffee-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className={`mx-auto h-16 w-16 rounded-full ${isDarkMode ? 'bg-dark-hover' : 'bg-coffee-light'} flex items-center justify-center mb-4`}>
+              <svg className={`h-8 w-8 ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-coffee-dark mb-1">No tickets found</h3>
-            <p className="text-coffee-medium mb-6">Try adjusting your search or filter criteria.</p>
+            <h3 className={`text-lg font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} mb-1`}>No tickets found</h3>
+            <p className={`${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'} mb-6`}>Try adjusting your search or filter criteria.</p>
             <button
               className="inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-md text-white bg-coffee-primary hover:bg-coffee-dark transition-colors"
               onClick={() => setShowTicketModal(true)}
@@ -435,10 +585,10 @@ export default function AllTicketsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-coffee-light border-b border-coffee-medium">
+                <tr className={`${isDarkMode ? 'bg-dark-hover border-dark-border' : 'bg-coffee-light border-coffee-medium'} border-b`}>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
+                    className={`px-6 py-4 text-left text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors`}
                     onClick={() => handleSort('title')}
                   >
                     <div className="flex items-center">
@@ -447,92 +597,92 @@ export default function AllTicketsPage() {
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
-                    onClick={() => handleSort('typeId')}
+                    className={`px-6 py-4 text-left text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors`}
+                    onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center">
-                      Type {getSortIcon('typeId')}
+                      Status {getSortIcon('status')}
                     </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
-                    onClick={() => handleSort('stateId')}
+                    className={`px-6 py-4 text-left text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors`}
+                    onClick={() => handleSort('priority')}
                   >
                     <div className="flex items-center">
-                      Status {getSortIcon('stateId')}
+                      Priority {getSortIcon('priority')}
                     </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
-                    onClick={() => handleSort('priorityId')}
+                    className={`px-6 py-4 text-left text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors`}
+                    onClick={() => handleSort('storyPoints')}
                   >
                     <div className="flex items-center">
-                      Priority {getSortIcon('priorityId')}
+                      Points {getSortIcon('storyPoints')}
                     </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
-                    onClick={() => handleSort('assignedToUserId')}
+                    className={`px-6 py-4 text-left text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors`}
+                    onClick={() => handleSort('assignedTo')}
                   >
                     <div className="flex items-center">
-                      Assigned To {getSortIcon('assignedToUserId')}
+                      Assigned To {getSortIcon('assignedTo')}
                     </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors"
-                    onClick={() => handleSort('creationDate')}
+                    className={`px-6 py-4 text-left text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider cursor-pointer hover:bg-coffee-medium hover:text-white transition-colors`}
+                    onClick={() => handleSort('createdAt')}
                   >
                     <div className="flex items-center">
-                      Created {getSortIcon('creationDate')}
+                      Created {getSortIcon('createdAt')}
                     </div>
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-coffee-dark uppercase tracking-wider"
+                    className={`px-6 py-4 text-right text-xs font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'} uppercase tracking-wider`}
                   >
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={`${isDarkMode ? 'bg-dark-secondary divide-dark-border' : 'bg-white divide-gray-200'} divide-y`}>
                 {filteredTickets.map((ticket) => (
-                  <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-coffee-dark">
+                  <tr key={ticket._id} className={`${isDarkMode ? 'hover:bg-dark-hover' : 'hover:bg-gray-50'} transition-colors`}>
+                    <td className={`px-6 py-4 text-sm font-medium ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`}>
                       <div className="flex items-center">
                         <span className="font-medium">{ticket.title}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-coffee-medium">
-                      {getTypeName(ticket.typeId)}
-                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${getStatusColorClass(ticket.stateId)}`}
+                        ${getStatusColorClass(ticket.status)}`}
                       >
-                        {getStateName(ticket.stateId)}
+                        {getStatusName(ticket.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${getPriorityColorClass(ticket.priorityId)}`}
+                        ${getPriorityColorClass(ticket.priority)}`}
                       >
-                        {getPriorityName(ticket.priorityId)}
+                        {getPriorityName(ticket.priority)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-coffee-medium">
-                      {getUserDisplayName(ticket.assignedToUserId) || '-'}
+                    <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`}>
+                      {ticket.storyPoints || 0}
                     </td>
-                    <td className="px-6 py-4 text-sm text-coffee-medium">
-                      {formatDate(ticket.creationDate)}
+                    <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-dark-text' : 'text-coffee-medium'}`}>
+                      {getAssigneeName(ticket.assignedTo)}
+                    </td>
+                    <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-dark-text' : 'text-coffee-medium'}`}>
+                      {formatDate(ticket.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center space-x-3 justify-end">
                         <button
-                          className="text-coffee-primary p-1.5 rounded-full hover:bg-coffee-light hover:text-coffee-dark transition-colors"
+                          className={`text-coffee-primary p-1.5 rounded-full ${isDarkMode ? 'hover:bg-dark-hover' : 'hover:bg-coffee-light'} hover:text-coffee-dark transition-colors`}
                           onClick={() => {
                             setSelectedTicket(ticket);
                             setShowViewModal(true);
@@ -551,10 +701,11 @@ export default function AllTicketsPage() {
                         >
                           <FaEdit />
                         </button>
-                        {getStateName(ticket.stateId) !== 'Closed' && (
+                        {getStatusName(ticket.status).toLowerCase() !== 'done' && 
+                         getStatusName(ticket.status).toLowerCase() !== 'closed' && (
                           <button
                             className="text-green-500 p-1.5 rounded-full hover:bg-green-50 hover:text-green-700 transition-colors"
-                            onClick={() => handleCloseTicket(ticket.id)}
+                            onClick={() => handleCloseTicket(ticket._id)}
                             title="Close Ticket"
                           >
                             <FaCheckCircle />
@@ -592,13 +743,11 @@ export default function AllTicketsPage() {
             setShowViewModal(false);
             setShowEditModal(true);
           }}
-          onClose={() => {
+          onDelete={(ticketId) => {
             setShowViewModal(false);
             setSelectedTicket(null);
+            handleDeleteTicket(ticketId);
           }}
-          types={types}
-          states={states}
-          users={users}
         />
       </Modal>
 
@@ -611,7 +760,41 @@ export default function AllTicketsPage() {
         }}
         ticket={selectedTicket}
         onSubmit={handleUpdateTicket}
+        title={selectedTicket ? `Edit Ticket: ${selectedTicket.title}` : 'Edit Ticket'}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Confirm Deletion"
+        size="small"
+      >
+        <div className="space-y-4">
+          <p className={`${isDarkMode ? 'text-dark-text' : 'text-coffee-dark'}`}>
+            Are you sure you want to delete the ticket "{selectedTicket?.title}"?
+          </p>
+          <p className={`text-sm ${isDarkMode ? 'text-dark-secondary' : 'text-coffee-medium'}`}>
+            This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3 pt-2">
+            <button
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                isDarkMode ? 'text-dark-text bg-dark-hover hover:bg-dark-border' : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+              }`}
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700"
+              onClick={() => selectedTicket && handleDeleteTicket(selectedTicket._id)}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
-};
+}

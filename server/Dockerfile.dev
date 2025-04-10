@@ -1,0 +1,15 @@
+FROM node:current-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+# Use --legacy-peer-deps to ensure all dependencies are installed even with peer dependency conflicts
+RUN npm install --legacy-peer-deps
+
+# Expose the API port
+EXPOSE 5000
+
+# Start development server with nodemon
+CMD ["npm", "run", "dev"]

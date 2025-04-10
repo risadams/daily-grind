@@ -1,125 +1,176 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/firebase');
-const admin = require('firebase-admin');
+const User = require('../models/user');
+const passport = require('passport');
+const { generateToken, authenticateJWT, isCurrentUser } = require('../middleware/auth');
+const { upload, getFileUrl, deleteFile } = require('../utils/fileUpload');
 
-// Get current user profile
-router.get('/profile', async (req, res) => {
+// Register new user
+router.post('/register', async (req, res) => {
   try {
-    const userRef = db.collection('users').doc(req.user.uid);
-    const doc = await userRef.get();
+    const { email, password, displayName } = req.body;
     
-    if (!doc.exists) {
-      // User exists in Firebase Auth but not in Firestore
-      return res.status(404).json({ error: 'User profile not found' });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
     }
     
-    res.json({ id: doc.id, ...doc.data() });
+    // Create new user
+    const newUser = new User({
+      email,
+      password,
+      displayName
+    });
+    
+    // Save user to database
+    await newUser.save();
+    
+    // Generate JWT token
+    const token = generateToken(newUser);
+    
+    // Return user info and token
+    res.status(201).json({
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        displayName: newUser.displayName,
+        photoURL: newUser.photoURL
+      },
+      token
+    });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).json({ error: 'Failed to fetch user profile' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Create or update user profile
-router.post('/profile', async (req, res) => {
-  try {
-    const { displayName, photoURL, preferences } = req.body;
-    const userRef = db.collection('users').doc(req.user.uid);
-    
-    // Check if user document exists
-    const doc = await userRef.get();
-    
-    const userData = {
-      uid: req.user.uid,
-      email: req.user.email,
-      ...(displayName && { displayName }),
-      ...(photoURL && { photoURL }),
-      ...(preferences && { preferences }),
-      updatedAt: new Date()
-    };
-    
-    if (!doc.exists) {
-      // Create new user document with creation timestamp
-      userData.createdAt = new Date();
-      await userRef.set(userData);
-    } else {
-      // Update existing user document
-      await userRef.update(userData);
+// Login user
+router.post('/login', (req, res, next) => {
+  passport.authenticate('local', { session: false }, (err, user, info) => {
+    if (err) {
+      return next(err);
     }
     
-    // Update Firebase Auth user profile if display name or photo URL provided
-    if (displayName || photoURL) {
-      const updateParams = {};
-      if (displayName) updateParams.displayName = displayName;
-      if (photoURL) updateParams.photoURL = photoURL;
-      
-      await admin.auth().updateUser(req.user.uid, updateParams);
+    if (!user) {
+      return res.status(401).json({ message: info.message || 'Invalid credentials' });
     }
     
-    res.json({
-      id: req.user.uid,
-      ...userData
+    // Generate JWT token
+    const token = generateToken(user);
+    
+    // Return user info and token
+    return res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      },
+      token
     });
+  })(req, res, next);
+});
+
+// Google OAuth authentication routes
+// Initiate Google OAuth authentication
+router.get('/auth/google', 
+  passport.authenticate('google', { 
+    session: false,
+    scope: ['profile', 'email']
+  })
+);
+
+// Google OAuth callback
+router.get('/auth/google/callback', 
+  passport.authenticate('google', { 
+    session: false,
+    failureRedirect: '/login' 
+  }),
+  (req, res) => {
+    // Generate JWT token for the authenticated Google user
+    const token = generateToken(req.user);
+    
+    // Redirect to frontend with token
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback?token=${token}`);
+  }
+);
+
+// Get all users
+router.get('/all', authenticateJWT, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    res.json(users);
   } catch (error) {
-    console.error('Error updating user profile:', error);
-    res.status(500).json({ error: 'Failed to update user profile' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Get user stats
-router.get('/stats', async (req, res) => {
+// Get user profile
+router.get('/:userId', authenticateJWT, isCurrentUser, async (req, res) => {
   try {
-    // Get tasks count by status
-    const tasksRef = db.collection('tasks');
-    const snapshot = await tasksRef.where('userId', '==', req.user.uid).get();
+    const user = await User.findById(req.params.userId).select('-password');
     
-    if (snapshot.empty) {
-      return res.json({
-        totalTasks: 0,
-        completed: 0,
-        pending: 0,
-        inProgress: 0,
-        overdue: 0
-      });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-
-    let stats = {
-      totalTasks: 0,
-      completed: 0,
-      pending: 0,
-      inProgress: 0,
-      overdue: 0
-    };
-
-    const now = new Date();
     
-    snapshot.forEach(doc => {
-      const task = doc.data();
-      stats.totalTasks++;
-      
-      // Count by status
-      if (task.status === 'completed') {
-        stats.completed++;
-      } else if (task.status === 'in-progress') {
-        stats.inProgress++;
-      } else if (task.status === 'pending') {
-        stats.pending++;
-      }
-      
-      // Check if task is overdue
-      if (task.dueDate && task.status !== 'completed') {
-        const dueDate = task.dueDate.toDate ? task.dueDate.toDate() : new Date(task.dueDate);
-        if (dueDate < now) {
-          stats.overdue++;
-        }
-      }
-    });
-
-    res.json(stats);
+    res.json(user);
   } catch (error) {
-    console.error('Error fetching user stats:', error);
-    res.status(500).json({ error: 'Failed to fetch user stats' });
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update user profile
+router.put('/:userId', authenticateJWT, isCurrentUser, async (req, res) => {
+  try {
+    const { displayName } = req.body;
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.userId,
+      { 
+        displayName,
+        updatedAt: Date.now()
+      },
+      { new: true }
+    ).select('-password');
+    
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Upload profile picture
+router.post('/:userId/profile-picture', authenticateJWT, isCurrentUser, upload.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    const fileUrl = getFileUrl(req.file.filename);
+    
+    // Update user with new photo URL
+    const user = await User.findById(req.params.userId);
+    
+    // Delete old profile picture if exists
+    if (user.photoURL) {
+      const oldFilename = user.photoURL.split('/').pop();
+      deleteFile(oldFilename);
+    }
+    
+    // Update user with new photo URL
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.userId,
+      { 
+        photoURL: fileUrl,
+        updatedAt: Date.now()
+      },
+      { new: true }
+    ).select('-password');
+    
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

@@ -6,7 +6,7 @@ import Logo from '../components/Logo.js';
 import Button from '../components/Button.js';
 import ThemeSwitcher from '../components/ThemeSwitcher.js';
 import SkipToContent from '../components/SkipToContent.js';
-import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt, FaCoffee, FaList, FaBars } from 'react-icons/fa/index.js';
+import { FaUser, FaSignOutAlt, FaTicketAlt, FaHome, FaListAlt, FaCoffee, FaList, FaBars, FaCogs } from 'react-icons/fa/index.js';
 
 const MainLayout = () => {
   const { currentUser, logOut } = useAuth();
@@ -21,8 +21,12 @@ const MainLayout = () => {
   };
 
   const handleLogout = async () => {
-    await logOut();
-    navigate('/login');
+    try {
+      await logOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   // Navigation links data for DRY code
@@ -30,6 +34,7 @@ const MainLayout = () => {
     { path: '/dashboard', icon: <FaHome className="mr-1" />, label: 'Dashboard' },
     { path: '/backlog', icon: <FaList className="mr-1" />, label: 'Backlog' },
     { path: '/tickets', icon: <FaListAlt className="mr-1" />, label: 'All Tickets' },
+    { path: '/projects', icon: <FaCogs className="mr-1" />, label: 'Projects' },
     { path: '/profile', icon: <FaUser className="mr-1" />, label: 'Profile' }
   ];
 

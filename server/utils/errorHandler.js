@@ -27,29 +27,106 @@ const errorConverter = (err, req, res, next) => {
   next(error);
 };
 
-// Error handler middleware
-const errorHandler = (err, req, res, next) => {
-  const { statusCode, message, isOperational, stack } = err;
+// Handle MongoDB validation errors
+const handleMongooseValidationError = (error) => {
+  const errors = {};
   
-  // Set status code
-  res.status(statusCode || 500);
-  
-  // Create error response
-  const response = {
-    status: 'error',
-    message,
-  };
-  
-  // Add stack trace in development
-  if (process.env.NODE_ENV === 'development' && !isOperational) {
-    response.stack = stack;
+  // Extract validation error messages
+  if (error.errors) {
+    Object.keys(error.errors).forEach(key => {
+      errors[key] = error.errors[key].message;
+    });
   }
   
-  // Log error for server-side review
-  console.error(err);
+  return {
+    status: 400,
+    message: 'Validation error',
+    errors
+  };
+};
+
+// Handle MongoDB duplicate key errors
+const handleMongooseDuplicateKeyError = (error) => {
+  // Extract the duplicate field
+  const field = Object.keys(error.keyPattern)[0];
+  const value = error.keyValue[field];
   
-  // Send response
-  res.json(response);
+  return {
+    status: 400,
+    message: `${field} "${value}" already exists`,
+    errors: {
+      [field]: `${field} already exists`
+    }
+  };
+};
+
+// Handle JWT errors
+const handleJWTError = (error) => {
+  return {
+    status: 401,
+    message: 'Invalid token. Please log in again.',
+    errors: {
+      authentication: 'Invalid token'
+    }
+  };
+};
+
+// Handle expired JWT
+const handleJWTExpiredError = (error) => {
+  return {
+    status: 401,
+    message: 'Your token has expired! Please log in again.',
+    errors: {
+      authentication: 'Token expired'
+    }
+  };
+};
+
+// Error handler middleware
+const errorHandler = (err, req, res, next) => {
+  let error = { ...err };
+  error.message = err.message;
+  
+  // Log error for debugging
+  console.error('Error:', err);
+  
+  // Mongoose validation error
+  if (error.name === 'ValidationError') {
+    error = handleMongooseValidationError(error);
+  }
+  
+  // Mongoose duplicate key error
+  if (error.code === 11000) {
+    error = handleMongooseDuplicateKeyError(error);
+  }
+  
+  // Mongoose cast error (invalid ObjectId)
+  if (error.name === 'CastError') {
+    error = {
+      status: 400,
+      message: `Invalid ${error.path}: ${error.value}`,
+      errors: {
+        [error.path]: `Invalid format for ${error.path}`
+      }
+    };
+  }
+  
+  // JWT error handling
+  if (error.name === 'JsonWebTokenError') {
+    error = handleJWTError(error);
+  }
+  
+  // JWT expired error
+  if (error.name === 'TokenExpiredError') {
+    error = handleJWTExpiredError(error);
+  }
+  
+  // Send error response
+  res.status(error.status || 500).json({
+    message: error.message || 'Server Error',
+    errors: error.errors || {},
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 };
 
 module.exports = {

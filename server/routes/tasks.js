@@ -1,149 +1,179 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/firebase');
-const { validateTaskInput, rateLimiter } = require('../middleware/validation');
+const Ticket = require('../models/ticket');
+const { authenticateJWT } = require('../middleware/auth');
+const { upload, getFileUrl, deleteFile } = require('../utils/fileUpload');
 
-// Get all tasks for the authenticated user
-router.get('/', rateLimiter, async (req, res) => {
+// Get all tickets
+router.get('/', authenticateJWT, async (req, res) => {
   try {
-    const tasksRef = db.collection('tasks');
-    const snapshot = await tasksRef.where('userId', '==', req.user.uid).get();
+    const tickets = await Ticket.find()
+      .populate('createdBy', 'displayName email photoURL')
+      .populate('assignedTo', 'displayName email photoURL')
+      .sort({ createdAt: -1 });
     
-    if (snapshot.empty) {
-      return res.json([]);
-    }
-
-    const tasks = [];
-    snapshot.forEach(doc => {
-      tasks.push({ id: doc.id, ...doc.data() });
-    });
-
-    res.json(tasks);
+    res.json(tickets);
   } catch (error) {
-    console.error('Error fetching tasks:', error);
-    res.status(500).json({ error: 'Failed to fetch tasks' });
+    res.status(500).json({ message: 'Error fetching tickets', error: error.message });
   }
 });
 
-// Get a specific task by ID
-router.get('/:id', rateLimiter, async (req, res) => {
+// Get ticket by ID
+router.get('/:id', authenticateJWT, async (req, res) => {
   try {
-    const taskRef = db.collection('tasks').doc(req.params.id);
-    const doc = await taskRef.get();
+    const ticket = await Ticket.findById(req.params.id)
+      .populate('createdBy', 'displayName email photoURL')
+      .populate('assignedTo', 'displayName email photoURL');
     
-    if (!doc.exists) {
-      return res.status(404).json({ error: 'Task not found' });
+    if (!ticket) {
+      return res.status(404).json({ message: 'Ticket not found' });
     }
     
-    const task = doc.data();
-    
-    // Ensure user can only access their own tasks
-    if (task.userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Unauthorized access to this task' });
-    }
-    
-    res.json({ id: doc.id, ...task });
+    res.json(ticket);
   } catch (error) {
-    console.error('Error fetching task:', error);
-    res.status(500).json({ error: 'Failed to fetch task' });
+    res.status(500).json({ message: 'Error fetching ticket', error: error.message });
   }
 });
 
-// Create a new task
-router.post('/', rateLimiter, validateTaskInput, async (req, res) => {
+// Create new ticket
+router.post('/', authenticateJWT, async (req, res) => {
   try {
-    const { title, description, dueDate, status, priority } = req.body;
+    const { title, description, priority, status } = req.body;
     
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-    
-    const newTask = {
+    const newTicket = new Ticket({
       title,
-      description: description || '',
-      dueDate: dueDate || null,
-      status: status || 'pending',
+      description,
       priority: priority || 'medium',
-      userId: req.user.uid,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const docRef = await db.collection('tasks').add(newTask);
-    
-    res.status(201).json({
-      id: docRef.id,
-      ...newTask
+      status: status || 'open',
+      createdBy: req.user._id
     });
+    
+    await newTicket.save();
+    
+    // Populate user data before returning
+    const populatedTicket = await Ticket.findById(newTicket._id)
+      .populate('createdBy', 'displayName email photoURL');
+    
+    res.status(201).json(populatedTicket);
   } catch (error) {
-    console.error('Error creating task:', error);
-    res.status(500).json({ error: 'Failed to create task' });
+    res.status(500).json({ message: 'Error creating ticket', error: error.message });
   }
 });
 
-// Update a task
-router.put('/:id', rateLimiter, validateTaskInput, async (req, res) => {
+// Update ticket
+router.put('/:id', authenticateJWT, async (req, res) => {
   try {
-    const { title, description, dueDate, status, priority } = req.body;
-    const taskRef = db.collection('tasks').doc(req.params.id);
-    const doc = await taskRef.get();
+    const { title, description, status, priority, assignedTo } = req.body;
     
-    if (!doc.exists) {
-      return res.status(404).json({ error: 'Task not found' });
+    const updatedTicket = await Ticket.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        description,
+        status,
+        priority,
+        assignedTo,
+        updatedAt: Date.now()
+      },
+      { new: true }
+    )
+    .populate('createdBy', 'displayName email photoURL')
+    .populate('assignedTo', 'displayName email photoURL');
+    
+    if (!updatedTicket) {
+      return res.status(404).json({ message: 'Ticket not found' });
     }
     
-    const task = doc.data();
-    
-    // Ensure user can only update their own tasks
-    if (task.userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Unauthorized access to this task' });
-    }
-    
-    const updatedTask = {
-      ...(title && { title }),
-      ...(description !== undefined && { description }),
-      ...(dueDate !== undefined && { dueDate }),
-      ...(status && { status }),
-      ...(priority && { priority }),
-      updatedAt: new Date()
-    };
-    
-    await taskRef.update(updatedTask);
-    
-    res.json({
-      id: doc.id,
-      ...task,
-      ...updatedTask
-    });
+    res.json(updatedTicket);
   } catch (error) {
-    console.error('Error updating task:', error);
-    res.status(500).json({ error: 'Failed to update task' });
+    res.status(500).json({ message: 'Error updating ticket', error: error.message });
   }
 });
 
-// Delete a task
-router.delete('/:id', rateLimiter, async (req, res) => {
+// Delete ticket
+router.delete('/:id', authenticateJWT, async (req, res) => {
   try {
-    const taskRef = db.collection('tasks').doc(req.params.id);
-    const doc = await taskRef.get();
+    const ticket = await Ticket.findById(req.params.id);
     
-    if (!doc.exists) {
-      return res.status(404).json({ error: 'Task not found' });
+    if (!ticket) {
+      return res.status(404).json({ message: 'Ticket not found' });
     }
     
-    const task = doc.data();
-    
-    // Ensure user can only delete their own tasks
-    if (task.userId !== req.user.uid) {
-      return res.status(403).json({ error: 'Unauthorized access to this task' });
+    // Delete any attached files
+    if (ticket.attachments && ticket.attachments.length > 0) {
+      ticket.attachments.forEach(attachment => {
+        const filename = attachment.fileUrl.split('/').pop();
+        deleteFile(filename);
+      });
     }
     
-    await taskRef.delete();
+    await Ticket.findByIdAndDelete(req.params.id);
     
-    res.json({ id: req.params.id, message: 'Task deleted successfully' });
+    res.json({ message: 'Ticket deleted successfully' });
   } catch (error) {
-    console.error('Error deleting task:', error);
-    res.status(500).json({ error: 'Failed to delete task' });
+    res.status(500).json({ message: 'Error deleting ticket', error: error.message });
+  }
+});
+
+// Add attachment to ticket
+router.post('/:id/attachments', authenticateJWT, upload.single('attachment'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    const ticket = await Ticket.findById(req.params.id);
+    
+    if (!ticket) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+    
+    const fileUrl = getFileUrl(req.file.filename);
+    
+    // Add attachment to ticket
+    ticket.attachments.push({
+      fileName: req.file.originalname,
+      fileUrl: fileUrl,
+      uploadedAt: Date.now()
+    });
+    
+    ticket.updatedAt = Date.now();
+    await ticket.save();
+    
+    res.status(201).json(ticket);
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding attachment', error: error.message });
+  }
+});
+
+// Remove attachment from ticket
+router.delete('/:id/attachments/:attachmentId', authenticateJWT, async (req, res) => {
+  try {
+    const ticket = await Ticket.findById(req.params.id);
+    
+    if (!ticket) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+    
+    // Find attachment
+    const attachment = ticket.attachments.id(req.params.attachmentId);
+    
+    if (!attachment) {
+      return res.status(404).json({ message: 'Attachment not found' });
+    }
+    
+    // Delete file
+    const filename = attachment.fileUrl.split('/').pop();
+    deleteFile(filename);
+    
+    // Remove attachment from ticket
+    ticket.attachments.pull(req.params.attachmentId);
+    ticket.updatedAt = Date.now();
+    await ticket.save();
+    
+    res.json(ticket);
+  } catch (error) {
+    res.status(500).json({ message: 'Error removing attachment', error: error.message });
   }
 });
 

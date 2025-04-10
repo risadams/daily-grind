@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.js';
-import { FaPlus, FaCheck, FaSpinner, FaClock, FaExclamationTriangle, FaEye, FaEdit, FaTrash, FaCheckCircle, FaTimes, FaFilter } from 'react-icons/fa/index.js';
-import { useNavigate } from 'react-router-dom';
+import { FaFilter, FaPlus, FaCheck, FaSpinner, FaClock, 
+  FaExclamationTriangle, FaEye, FaEdit, FaCheckCircle } from 'react-icons/fa/index.js';
 import { useDatabase } from '../context/DatabaseContext.js';
+import { useAuth } from '../context/AuthContext.js';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext.js';
-import { logout } from '../services/authService.js';
-import Card from '../components/Card.js';
 import Button from '../components/Button.js';
 import Logo from '../components/Logo.js';
 import Modal from '../components/Modal.js';
@@ -34,25 +33,6 @@ const Dashboard = () => {
   const [filteredTickets, setFilteredTickets] = useState([]);
   const [filter, setFilter] = useState('all');
 
-  // Apply filter when tickets or filter changes
-  useEffect(() => {
-    if (!tickets) return;
-    
-    switch (filter) {
-      case 'in-progress':
-        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress'));
-        break;
-      case 'closed':
-        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase() === 'closed'));
-        break;
-      case 'todo':
-        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'todo'));
-        break;
-      default:
-        setFilteredTickets(tickets);
-    }
-  }, [tickets, filter]);
-
   // Helper functions for displaying ticket data with type-safe comparisons
   const getTypeName = (typeId) => {
     const type = types.find(t => 
@@ -78,6 +58,25 @@ const Dashboard = () => {
     const priorityObj = priorities.find(priority => String(priority.id) === searchId);
     return priorityObj ? priorityObj.name : 'Medium';
   };
+
+  // Apply filter when tickets or filter changes
+  useEffect(() => {
+    if (!tickets) return;
+    
+    switch (filter) {
+      case 'in-progress':
+        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'inprogress'));
+        break;
+      case 'closed':
+        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase() === 'closed'));
+        break;
+      case 'todo':
+        setFilteredTickets(tickets.filter(t => getStateName(t.stateId).toLowerCase().replace(' ', '') === 'todo'));
+        break;
+      default:
+        setFilteredTickets(tickets);
+    }
+  }, [tickets, filter, getStateName]); // Added getStateName to dependency array
 
   // Get status icon based on state
   const getStatusIcon = (stateId) => {
@@ -219,7 +218,7 @@ const Dashboard = () => {
                       <div>
                         <h3 className="text-lg font-medium text-coffee-dark">{currentUser.email}</h3>
                         <p className="text-sm text-coffee-medium">
-                          Signed in via {currentUser?.providerData[0]?.providerId || 'Email/Password'}
+                          Signed in via {currentUser?.providerData && currentUser.providerData[0]?.providerId || 'Email/Password'}
                         </p>
                       </div>
                     </div>
@@ -412,7 +411,7 @@ const Dashboard = () => {
                   <div className="inline-flex items-center rounded-md shadow-sm">
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-l-md ${filter === 'all' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50 border-r border-gray-200'}`}
                       onClick={() => setFilter('all')}
                     >
@@ -420,7 +419,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium ${filter === 'todo' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50 border-r border-gray-200'}`}
                       onClick={() => setFilter('todo')}
                     >
@@ -428,7 +427,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium ${filter === 'in-progress' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50 border-r border-gray-200'}`}
                       onClick={() => setFilter('in-progress')}
                     >
@@ -436,7 +435,7 @@ const Dashboard = () => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-r-md ${filter === 'closed' 
-                        ? 'bg-coffee-primary text-white' 
+                        ? 'bg-coffee-dark text-white' 
                         : 'bg-white text-coffee-dark hover:bg-gray-50'}`}
                       onClick={() => setFilter('closed')}
                     >
@@ -444,11 +443,11 @@ const Dashboard = () => {
                     </button>
                   </div>
                   
-                  <button
-                    className="ml-2 flex items-center gap-2 px-4 py-2 bg-coffee-dark text-white rounded-md hover:bg-coffee-primary transition-all shadow-sm"
-                    onClick={() => setShowTicketModal(true)}
+                  <button 
+                    onClick={() => handleCreateTicket()}
+                    className="bg-coffee-dark border border-coffee-dark text-white px-4 py-2 rounded-md hover:bg-coffee-primary transition-colors shadow-sm"
                   >
-                    <FaPlus className="text-sm" /> New
+                    Create Ticket
                   </button>
                 </div>
               </div>

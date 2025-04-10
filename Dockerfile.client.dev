@@ -1,0 +1,23 @@
+FROM node:current-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN npm install
+
+# No need to copy source files as they will be mounted as a volume
+
+# Set environment variables for hot reloading
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+ENV WDS_SOCKET_HOST=0.0.0.0
+ENV WDS_SOCKET_PORT=0
+ENV FAST_REFRESH=true
+
+# Expose React development server port
+EXPOSE 3000
+
+# Start React development server with polling enabled
+CMD ["npm", "start"]
