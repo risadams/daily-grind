@@ -60,7 +60,8 @@ const connectToMongoDB = async () => {
     if (process.env.NODE_ENV === 'development') {
       // In development, wait and retry connection
       console.log('Retrying MongoDB connection in 5 seconds...');
-      setTimeout(() => connectToMongoDB(), 5000);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await connectToMongoDB();
     } else {
       throw error;
     }
