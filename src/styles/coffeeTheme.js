@@ -1,5 +1,5 @@
 // Custom coffee-themed color palette for tailwind
-module.exports = {
+const coffeeTheme = {
   extend: {
     colors: {
       coffee: {
@@ -66,3 +66,5 @@ module.exports = {
     }
   },
 };
+
+export default coffeeTheme;

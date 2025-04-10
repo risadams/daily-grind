@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongodb:
+    image: mongo:latest
+    container_name: daily-grind-mongodb-dev
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data_dev:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=daily-grind
+    networks:
+      - daily-grind-network-dev
+
+  # Daily Grind Backend Server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: daily-grind-server-dev
+    restart: always
+    depends_on:
+      - mongodb
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - app_uploads_dev:/app/uploads
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/daily-grind
+      - JWT_SECRET=daily-grind-jwt-secret-dev
+    command: npm run dev
+    networks:
+      - daily-grind-network-dev
+
+  # Daily Grind Frontend Client
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client.dev
+    container_name: daily-grind-client-dev
+    restart: always
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - REACT_APP_API_URL=http://localhost:5000/api
+      - WDS_SOCKET_PORT=0
+    command: npm start
+    networks:
+      - daily-grind-network-dev
+
+volumes:
+  mongodb_data_dev:
+  app_uploads_dev:
+
+networks:
+  daily-grind-network-dev:
+    driver: bridge

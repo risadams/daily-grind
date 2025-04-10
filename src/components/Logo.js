@@ -1,17 +1,18 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaCoffee } from 'react-icons/fa/index.js';
 
-const Logo = ({ size = 'normal' }) => {
+const Logo = ({ size = 'normal', asLink = true }) => {
   // Determine size class based on prop
   const sizeClass = size === 'small'
     ? 'h-8 w-8'
     : size === 'large'
       ? 'h-16 w-16'
       : 'h-10 w-10';
-
-  return (
-    <Link to="/" className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
+      
+  // Common logo content
+  const LogoContent = () => (
+    <>
       <div className={`relative ${sizeClass} mr-2`}>
         <div className="absolute inset-0 bg-coffee-medium rounded-lg transform rotate-12" aria-hidden="true"></div>
         <div className="absolute inset-0 bg-coffee-dark rounded-lg transform -rotate-6" aria-hidden="true"></div>
@@ -30,8 +31,45 @@ const Logo = ({ size = 'normal' }) => {
         <span className="text-coffee-dark">Daily</span>
         <span className="text-coffee-accent">Grind</span>
       </div>
-    </Link>
+    </>
   );
+
+  // Try-catch for using navigate to handle cases where Logo might be used outside a Router context
+  const handleClick = () => {
+    try {
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Navigation failed:', error);
+    }
+  };
+
+  // If not used as a link, return a div
+  if (!asLink) {
+    return (
+      <div className="flex items-center">
+        <LogoContent />
+      </div>
+    );
+  }
+
+  // Use Link if within Router context
+  try {
+    return (
+      <Link to="/" className="flex items-center cursor-pointer hover:opacity-90 transition-opacity">
+        <LogoContent />
+      </Link>
+    );
+  } catch (error) {
+    // Fallback to a button with onClick handler if Router context isn't available
+    return (
+      <button 
+        onClick={handleClick}
+        className="flex items-center cursor-pointer hover:opacity-90 transition-opacity border-none bg-transparent p-0"
+      >
+        <LogoContent />
+      </button>
+    );
+  }
 };
 
 export default Logo;

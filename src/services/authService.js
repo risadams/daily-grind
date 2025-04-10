@@ -1,92 +1,148 @@
-// Authentication service for handling user auth operations
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, OAuthProvider } from 'firebase/auth';
-import { auth } from '../firebase/config.js';
+import axios from 'axios';
 
-// Initialize providers
-const googleProvider = new GoogleAuthProvider();
-const githubProvider = new GithubAuthProvider();
-const appleProvider = new OAuthProvider('apple.com');
-const microsoftProvider = new OAuthProvider('microsoft.com');
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Helper to store auth state in localStorage
-const setAuthState = (isAuthenticated) => {
-  localStorage.setItem('isAuthenticated', isAuthenticated.toString());
-};
-
-// Email & Password Authentication
-export const registerWithEmail = async (email, password) => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    setAuthState(true);
-    return { success: true, user: userCredential.user };
-  } catch (error) {
-    return { success: false, error: error.message };
+// Helper function to set auth token in headers
+const setAuthToken = (token) => {
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('authToken', token);
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
+    localStorage.removeItem('authToken');
   }
 };
 
-export const loginWithEmail = async (email, password) => {
+// Initialize auth token from localStorage
+const initAuth = () => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    setAuthToken(token);
+    return getCurrentUser();
+  }
+  return Promise.resolve(null);
+};
+
+// Register a new user
+const register = async (email, password, displayName) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    setAuthState(true);
-    return { success: true, user: userCredential.user };
+    const response = await axios.post(`${API_URL}/users/register`, {
+      email,
+      password,
+      displayName
+    });
+    
+    const { user, token } = response.data;
+    setAuthToken(token);
+    
+    return user;
   } catch (error) {
-    return { success: false, error: error.message };
+    throw new Error(error.response?.data?.message || 'Registration failed');
   }
 };
 
-// OAuth Providers
-export const loginWithGoogle = async () => {
+// Login user
+const login = async (email, password) => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    setAuthState(true);
-    return { success: true, user: result.user };
+    const response = await axios.post(`${API_URL}/users/login`, {
+      email,
+      password
+    });
+    
+    const { user, token } = response.data;
+    setAuthToken(token);
+    
+    return user;
   } catch (error) {
-    return { success: false, error: error.message };
+    throw new Error(error.response?.data?.message || 'Login failed');
   }
 };
 
-export const loginWithGithub = async () => {
+// Google login
+const loginWithGoogle = () => {
+  window.location.href = `${API_URL}/users/auth/google`;
+};
+
+// Handle OAuth callback
+const handleAuthCallback = (token) => {
+  if (token) {
+    setAuthToken(token);
+    return getCurrentUser();
+  }
+  return Promise.resolve(null);
+};
+
+// Logout user
+const logout = () => {
+  setAuthToken(null);
+};
+
+// Get current user
+const getCurrentUser = async () => {
   try {
-    const result = await signInWithPopup(auth, githubProvider);
-    setAuthState(true);
-    return { success: true, user: result.user };
+    const token = localStorage.getItem('authToken');
+    if (!token) return null;
+    
+    // Decode JWT to get user ID (simple decode, not verification)
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = JSON.parse(window.atob(base64));
+    
+    const userId = decoded.sub; // JWT subject holds the user ID
+    
+    const response = await axios.get(`${API_URL}/users/${userId}`);
+    return response.data;
   } catch (error) {
-    return { success: false, error: error.message };
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear it
+      setAuthToken(null);
+    }
+    return null;
   }
 };
 
-export const loginWithApple = async () => {
+// Update user profile
+const updateProfile = async (userId, userData) => {
   try {
-    const result = await signInWithPopup(auth, appleProvider);
-    setAuthState(true);
-    return { success: true, user: result.user };
+    const response = await axios.put(`${API_URL}/users/${userId}`, userData);
+    return response.data;
   } catch (error) {
-    return { success: false, error: error.message };
+    throw new Error(error.response?.data?.message || 'Failed to update profile');
   }
 };
 
-export const loginWithMicrosoft = async () => {
+// Upload profile picture
+const uploadProfilePicture = async (userId, file) => {
   try {
-    const result = await signInWithPopup(auth, microsoftProvider);
-    setAuthState(true);
-    return { success: true, user: result.user };
+    const formData = new FormData();
+    formData.append('profilePicture', file);
+    
+    const response = await axios.post(
+      `${API_URL}/users/${userId}/profile-picture`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    
+    return response.data;
   } catch (error) {
-    return { success: false, error: error.message };
+    throw new Error(error.response?.data?.message || 'Failed to upload profile picture');
   }
 };
 
-// Sign out
-export const logout = async () => {
-  try {
-    await signOut(auth);
-    setAuthState(false);
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+const authService = {
+  initAuth,
+  register,
+  login,
+  loginWithGoogle,
+  handleAuthCallback,
+  logout,
+  getCurrentUser,
+  updateProfile,
+  uploadProfilePicture
 };
 
-// Check authentication state
-export const getCurrentUser = () => {
-  return auth.currentUser;
-};
+export default authService;

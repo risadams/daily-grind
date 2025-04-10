@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import coffeeTheme from '../styles/coffeeTheme.js';
 
 // Create theme context
 const ThemeContext = createContext();
@@ -7,7 +8,18 @@ const ThemeContext = createContext();
  * Custom hook to access the Theme context
  */
 export function useTheme() {
-  return useContext(ThemeContext);
+  const context = useContext(ThemeContext);
+  // Provide default values if context is undefined to prevent destructuring errors
+  if (!context) {
+    return {
+      theme: 'light',
+      setTheme: () => {},
+      toggleTheme: () => {},
+      isDarkMode: false,
+      isLightMode: true
+    };
+  }
+  return context;
 }
 
 /**
@@ -17,6 +29,8 @@ export function useTheme() {
 export function ThemeProvider({ children }) {
   // Check if user has already set a preference or get system preference
   const getInitialTheme = () => {
+    if (typeof window === 'undefined') return 'light';
+    
     // Check for saved preference in localStorage
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -43,6 +57,8 @@ export function ThemeProvider({ children }) {
   
   // Set theme on body element
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const body = document.body;
     
     if (theme === 'dark') {

@@ -12,14 +12,14 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, signInWithGoogle, signInWithGithub, signInWithApple, signInWithMicrosoft, currentUser, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, currentUser } = useAuth();
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
-    if (isAuthenticated) {
+    if (currentUser) {
       navigate('/dashboard');
     }
-  }, [isAuthenticated, navigate]);
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,15 +27,10 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
-      const result = await login(email, password);
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setError(result.error);
-      }
+      await login(email, password);
+      navigate('/dashboard');
     } catch (error) {
-      setError('Failed to sign in');
+      setError('Failed to sign in: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -46,31 +41,24 @@ const Login = () => {
       setError('');
       setLoading(true);
       
-      let result;
       switch (provider) {
         case 'google':
-          result = await signInWithGoogle();
+          loginWithGoogle();
           break;
         case 'github':
-          result = await signInWithGithub();
+          setError('GitHub login not implemented yet');
           break;
         case 'apple':
-          result = await signInWithApple();
+          setError('Apple login not implemented yet');
           break;
         case 'microsoft':
-          result = await signInWithMicrosoft();
+          setError('Microsoft login not implemented yet');
           break;
         default:
           throw new Error('Invalid provider');
       }
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setError(result.error);
-      }
     } catch (error) {
-      setError(`Failed to sign in with ${provider}`);
+      setError(`Failed to sign in with ${provider}: ${error.message}`);
     } finally {
       setLoading(false);
     }

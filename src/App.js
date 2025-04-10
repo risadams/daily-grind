@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Contexts
 import { AuthProvider } from './context/AuthContext.js';
@@ -29,6 +29,7 @@ import FeaturesPage from './pages/FeaturesPage.js';
 import PricingPage from './pages/PricingPage.js';
 import BlogPage from './pages/BlogPage.js';
 import SupportPage from './pages/SupportPage.js';
+import AuthCallback from './pages/AuthCallback.js';
 
 // Guards
 import PrivateRoute from './guards/PrivateRoute.js';
@@ -37,12 +38,7 @@ import PublicRoute from './guards/PublicRoute.js';
 const App = () => {
   return (
     <ErrorBoundary>
-      <BrowserRouter
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
+      <Router>
         <AuthProvider>
           <DatabaseProvider>
             <ThemeProvider>
@@ -61,6 +57,8 @@ const App = () => {
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
+                    {/* OAuth callback route */}
+                    <Route path="/auth/callback" element={<AuthCallback />} />
                   </Route>
                   
                   {/* Protected routes */}
@@ -81,7 +79,7 @@ const App = () => {
             </ThemeProvider>
           </DatabaseProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </Router>
     </ErrorBoundary>
   );
 };

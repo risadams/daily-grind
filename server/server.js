@@ -1,72 +1,68 @@
 const express = require('express');
 const cors = require('cors');
-const morgan = require('morgan');
-const helmet = require('helmet');
-const firebase = require('firebase-admin');
-const dotenv = require('dotenv');
-const { errorConverter, errorHandler } = require('./utils/errorHandler');
-
-// Load environment variables
-dotenv.config();
+const path = require('path');
+const session = require('express-session');
+const connectToMongoDB = require('./config/mongodb/connection');
+const passport = require('./config/auth/passport');
+const userRoutes = require('./routes/users');
+const taskRoutes = require('./routes/tasks');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize Firebase Admin SDK
-firebase.initializeApp({
-  credential: firebase.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-  }),
-  databaseURL: process.env.FIREBASE_DATABASE_URL
-});
+// Connect to MongoDB
+connectToMongoDB();
 
 // Middleware
-app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS for all routes
-app.use(morgan('dev')); // HTTP request logger
-app.use(express.json()); // Parse JSON request bodies
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:5000'],
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Auth middleware
-const authenticateUser = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Unauthorized: Missing or invalid token format' });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    
-    const decodedToken = await firebase.auth().verifyIdToken(token);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+// Session configuration
+app.use(session({
+  secret: process.env.JWT_SECRET || 'daily-grind-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
-};
+}));
 
-// Routes
-app.get('/', (req, res) => {
-  res.json({ message: 'Daily Grind API is running' });
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Import route modules
-const taskRoutes = require('./routes/tasks');
-const userRoutes = require('./routes/users');
+// API routes
+app.use('/api/users', userRoutes);
+app.use('/api/tickets', taskRoutes);
 
-// Apply routes
-app.use('/api/tasks', authenticateUser, taskRoutes);
-app.use('/api/users', authenticateUser, userRoutes);
+// Serve static files from React app in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../build')));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../build', 'index.html'));
+  });
+}
 
-// Convert errors to ApiError, if needed
-app.use(errorConverter);
-
-// Error handler middleware (should be last)
-app.use(errorHandler);
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong', error: err.message });
+});
 
 // Start server
 app.listen(PORT, () => {
