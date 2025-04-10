@@ -160,13 +160,19 @@ export default function AllTicketsPage() {
     }
     
     // If it's an ObjectId reference that's not populated
-    const statusId = typeof status === 'object' ? status.toString() : status;
-    const statusObj = states.find(s => 
-      s._id === statusId || 
-      s._id.toString() === statusId
-    );
+    if (states && Array.isArray(states)) {
+      const statusId = typeof status === 'object' && status !== null ? status.toString() : status;
+      const statusObj = states.find(s => 
+        s && s._id && (
+          s._id === statusId || 
+          (s._id.toString && s._id.toString() === statusId)
+        )
+      );
+      
+      return statusObj ? statusObj.name : 'Unknown';
+    }
     
-    return statusObj ? statusObj.name : 'Unknown';
+    return 'Unknown';
   };
 
   const getPriorityName = (priority) => {
@@ -183,13 +189,19 @@ export default function AllTicketsPage() {
     }
     
     // If it's an ObjectId reference that's not populated
-    const priorityId = typeof priority === 'object' ? priority.toString() : priority;
-    const priorityObj = priorities.find(p => 
-      p._id === priorityId || 
-      p._id.toString() === priorityId
-    );
+    if (priorities && Array.isArray(priorities)) {
+      const priorityId = typeof priority === 'object' && priority !== null ? priority.toString() : priority;
+      const priorityObj = priorities.find(p => 
+        p && p._id && (
+          p._id === priorityId || 
+          (p._id.toString && p._id.toString() === priorityId)
+        )
+      );
+      
+      return priorityObj ? priorityObj.name : 'Medium';
+    }
     
-    return priorityObj ? priorityObj.name : 'Medium';
+    return 'Medium';
   };
 
   const getFeatureName = (feature) => {

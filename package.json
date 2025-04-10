@@ -12,7 +12,8 @@
     "dev": "nodemon server/server.js",
     "start:server": "cd server && npm run dev",
     "start:client": "react-scripts start",
-    "start:all": "concurrently \"npm run start:server\" \"npm run start:client\""
+    "start:all": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "docker:rebuild": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml build --no-cache && docker-compose -f docker-compose.dev.yml up"
   },
   "keywords": [
     "ticket",
