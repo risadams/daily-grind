@@ -134,8 +134,8 @@ const PricingPage = () => {
       icon: <FaCoffee className="h-6 w-6" />,
       buttonText: "Start for free",
       features: [
-        { included: true, text: "Up to 10 tickets" },
-        { included: true, text: "Basic ticket management" },
+        { included: true, text: "Up to 10 tasks" },
+        { included: true, text: "Basic task management" },
         { included: true, text: "Personal dashboard" },
         { included: false, text: "Sprint planning" },
         { included: false, text: "Team collaboration" },
@@ -152,8 +152,8 @@ const PricingPage = () => {
       icon: <FaUsers className="h-6 w-6" />,
       isPopular: true,
       features: [
-        { included: true, text: "Unlimited tickets" },
-        { included: true, text: "Advanced ticket management" },
+        { included: true, text: "Unlimited tasks" },
+        { included: true, text: "Advanced task management" },
         { included: true, text: "Team dashboards" },
         { included: true, text: "Sprint planning & execution" },
         { included: true, text: "Team collaboration tools" },
@@ -201,14 +201,14 @@ const PricingPage = () => {
 
   // Feature comparison for the detailed section
   const detailedFeatures = {
-    ticketManagement: {
-      title: "Ticket Management",
+    taskManagement: {
+      title: "Task Management",
       icon: <FaClipboardList className="h-6 w-6" />,
       features: [
-        { name: "Custom ticket fields", espresso: false, americano: true, macchiato: true, enterprise: true },
-        { name: "Bulk ticket operations", espresso: false, americano: true, macchiato: true, enterprise: true },
+        { name: "Custom task fields", espresso: false, americano: true, macchiato: true, enterprise: true },
+        { name: "Bulk task operations", espresso: false, americano: true, macchiato: true, enterprise: true },
         { name: "Custom workflows", espresso: false, americano: false, macchiato: true, enterprise: true },
-        { name: "Automated ticket routing", espresso: false, americano: false, macchiato: true, enterprise: true }
+        { name: "Automated task routing", espresso: false, americano: false, macchiato: true, enterprise: true }
       ]
     },
     sprintPlanning: {

@@ -36,7 +36,7 @@
   - attachments (embedded array of files)
 - **Virtual Fields**: progress (calculated dynamically)
 
-#### Ticket
+#### Task
 
 - **Purpose**: Smallest unit of work, belongs to a Feature
 - **Key Fields**:
@@ -47,7 +47,7 @@
   - sprints (array of refs: Sprint)
   - labels (array of refs: Label)
   - feature (ref: Feature)
-  - links (embedded array of TicketLinks)
+  - links (embedded array of TaskLinks)
   - createdBy, assignedTo, reviewedBy (all ref: User)
   - attachments (embedded array of files)
 - **Virtual Fields**: splashCount (calculated based on number of sprints)
@@ -63,7 +63,7 @@
   - capacity, velocity
   - status (enum: planning, active, completed, cancelled)
   - retrospective (ref: Retrospective)
-  - tickets (array of refs: Ticket)
+  - tasks (array of refs: Task)
   - createdBy (ref: User)
 
 #### Retrospective
@@ -127,7 +127,7 @@
 
 #### LinkType
 
-- **Purpose**: Defines relationship types between tickets
+- **Purpose**: Defines relationship types between tasks
 - **Key Fields**:
   - name, description
   - inverse (relationship name in reverse)
@@ -150,7 +150,7 @@
       │               └─────┬──────┘               ▲
 ┌─────▼─────┐               │                ┌─────┴────┐
 │Retrospect.│         ┌─────▼────┐           │  Label   │
-└───────────┘         │  Ticket  ├───────────►          │
+└───────────┘         │   Task   ├───────────►          │
                       └──────────┘           └──────────┘
                            │
                            │                ┌──────────┐
@@ -165,20 +165,20 @@
 
 ## Key Relationships
 
-1. **Work Hierarchy**: Epic → Feature → Ticket
-2. **Assignment**: User can be assigned to Tickets, own Features/Epics, create items
+1. **Work Hierarchy**: Epic → Feature → Task
+2. **Assignment**: User can be assigned to Tasks, own Features/Epics, create items
 3. **Classification**: Status, Priority, and Labels are applied to work items
-4. **Planning**: Tickets are assigned to Sprints
+4. **Planning**: Tasks are assigned to Sprints
 5. **Teams**: Teams have members (Users) with specific Roles
 6. **Workflow**: Status objects can define valid workflow transitions
 7. **Retrospectives**: Each Sprint can have one Retrospective
-8. **Ticket Linkage**: Tickets can be linked to each other through LinkTypes
+8. **Task Linkage**: Tasks can be linked to each other through LinkTypes
 
 ## Additional Notes
 
 - All models include timestamps (createdAt, updatedAt)
 - Most models use pre-save hooks to automatically update timestamps
-- Work items (Epics, Features, Tickets) support file attachments
+- Work items (Epics, Features, Tasks) support file attachments
 - Progress tracking is implemented through virtual properties in Epics and Features
-- The schema uses MongoDB'\''s referencing capabilities extensively to create relationships
+- The schema uses MongoDB's referencing capabilities extensively to create relationships
 - Team membership includes a roles array for role-based permissions

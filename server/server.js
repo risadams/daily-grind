@@ -56,7 +56,7 @@ app.get('/api/health', (req, res) => {
 
 // API routes
 app.use('/api/users', userRoutes);
-app.use('/api/tickets', taskRoutes);
+app.use('/api/tasks', taskRoutes);
 app.use('/api/statuses', statusRoutes);
 app.use('/api/priorities', priorityRoutes);
 app.use('/api/link-types', linkTypeRoutes);

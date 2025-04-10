@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Status = require('../models/status');
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const connectToMongoDB = require('../config/mongodb/connection');
 
 // Initial status definitions
@@ -86,15 +86,15 @@ async function setupInitialStatuses() {
       await Status.findByIdAndUpdate(statusId, { workflow: workflowIds });
     }
 
-    // Get default "To Do" status for updating existing tickets
+    // Get default "To Do" status for updating existing tasks
     const defaultStatus = await Status.findOne({ name: 'To Do' });
     
     if (defaultStatus) {
-      // Update any existing tickets with string statuses to use the new status reference
-      const ticketCount = await Ticket.countDocuments({ status: { $type: 'string' } });
+      // Update any existing tasks with string statuses to use the new status reference
+      const taskCount = await Task.countDocuments({ status: { $type: 'string' } });
       
-      if (ticketCount > 0) {
-        console.log(`Updating ${ticketCount} tickets with string status to use status reference`);
+      if (taskCount > 0) {
+        console.log(`Updating ${taskCount} tasks with string status to use status reference`);
         
         const statusMappings = {
           'open': statusMap['To Do'],
@@ -109,18 +109,18 @@ async function setupInitialStatuses() {
           'wontfix': statusMap["Won't Fix"]
         };
 
-        // Update tickets with statusMappings if they exist, otherwise use default
+        // Update tasks with statusMappings if they exist, otherwise use default
         for (const [stringStatus, statusId] of Object.entries(statusMappings)) {
           if (statusId) {
-            await Ticket.updateMany(
+            await Task.updateMany(
               { status: stringStatus },
               { $set: { status: statusId } }
             );
           }
         }
         
-        // Update any remaining tickets with string status to default
-        await Ticket.updateMany(
+        // Update any remaining tasks with string status to default
+        await Task.updateMany(
           { status: { $type: 'string' } },
           { $set: { status: defaultStatus._id } }
         );

@@ -18,7 +18,7 @@ import Login from './pages/Login.js';
 import Register from './pages/Register.js';
 import Dashboard from './pages/Dashboard.js';
 import Profile from './pages/Profile.js';
-import AllTickets from './pages/AllTickets.js';
+import AllTasks from './pages/AllTasks.js';
 import ForgotPassword from './pages/ForgotPassword.js';
 import NotFound from './pages/NotFound.js';
 import LogoutPage from './pages/LogoutPage.js';
@@ -66,7 +66,7 @@ const App = () => {
                   <Route element={<PrivateRoute />}>
                     <Route element={<MainLayout />}>
                       <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/tickets" element={<AllTickets />} />
+                      <Route path="/tasks" element={<AllTasks />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/backlog" element={<BacklogPage />} />
                       <Route path="/projects" element={<ProjectsPage />} />

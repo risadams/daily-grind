@@ -1,0 +1,238 @@
+/* Task Card Component Styles */
+.task-card {
+  position: relative;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.task-card-dark {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.task-card-dark .task-card-meta span,
+.task-card-dark .task-card-footer,
+.task-card-dark .task-card-assignee {
+  color: #94a3b8;
+}
+
+.task-card-compact {
+  padding: 8px;
+  gap: 4px;
+}
+
+.task-priority-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.task-priority-high {
+  background-color: #ef4444;
+}
+
+.task-priority-medium {
+  background-color: #f59e0b;
+}
+
+.task-priority-low {
+  background-color: #10b981;
+}
+
+.task-card-title {
+  padding-left: 10px;
+  padding-right: 8px;
+}
+
+.task-card-title h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.task-card-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.task-card-meta span {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.task-card-dark .task-card-meta span {
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+.task-type {
+  border-left: 3px solid #8b5cf6;
+}
+
+.task-state {
+  border-left: 3px solid #3b82f6;
+}
+
+.task-card-description {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+.task-card-dark .task-card-description {
+  color: #94a3b8;
+}
+
+.task-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.task-id {
+  background-color: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.task-card-dark .task-id {
+  background-color: #334155;
+}
+
+.task-date {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.task-card-assignee {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #4b5563;
+  margin-top: 2px;
+}
+
+.task-card-assignee .icon,
+.task-date .icon {
+  font-size: 10px;
+}
+
+.task-card-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.task-detail-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #3b82f6;
+  text-decoration: none;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.task-card-dark .task-detail-link {
+  color: #60a5fa;
+}
+
+.task-detail-link:hover {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.task-card-dark .task-detail-link:hover {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+.task-detail-link .icon {
+  font-size: 10px;
+}
+
+/* Modal styles */
+.task-detail-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.task-detail-modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.task-detail-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.task-detail-close:hover {
+  background-color: #f3f4f6;
+}

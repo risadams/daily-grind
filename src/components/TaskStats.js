@@ -1,16 +1,16 @@
 import React from 'react';
-import useTickets from '../hooks/useTickets.js';
+import useTasks from '../hooks/useTasks.js';
 import { useTheme } from '../context/ThemeContext.js';
 import { FaCheckCircle, FaSpinner, FaListAlt } from 'react-icons/fa/index.js';
 
 /**
- * TicketStats component displays visualizations and analytics for tickets
+ * TaskStats component displays visualizations and analytics for tasks
  * 
  * @param {Object} props
  * @param {string} props.className - Additional CSS classes
  */
-const TicketStats = ({ className = '' }) => {
-  const { ticketStats } = useTickets();
+const TaskStats = ({ className = '' }) => {
+  const { taskStats } = useTasks();
   const { isDarkMode } = useTheme();
   
   const {
@@ -20,7 +20,7 @@ const TicketStats = ({ className = '' }) => {
     todo,
     completionRate,
     priorityDistribution
-  } = ticketStats;
+  } = taskStats;
 
   // Calculate percentages for visualization
   const todoPercent = total ? Math.round((todo / total) * 100) : 0;
@@ -35,7 +35,7 @@ const TicketStats = ({ className = '' }) => {
   return (
     <div className={`${isDarkMode ? 'bg-dark-surface text-dark-primary' : 'bg-white text-coffee-dark'} 
       rounded-xl shadow-md p-6 ${className} transition-colors duration-200`}>
-      <h2 className="text-lg font-medium mb-6">Ticket Statistics</h2>
+      <h2 className="text-lg font-medium mb-6">Task Statistics</h2>
       
       {/* Progress Overview */}
       <div className="mb-8">
@@ -149,4 +149,4 @@ const TicketStats = ({ className = '' }) => {
   );
 };
 
-export default TicketStats;
+export default TaskStats;

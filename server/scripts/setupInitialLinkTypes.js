@@ -1,83 +1,83 @@
 const mongoose = require('mongoose');
 const LinkType = require('../models/linkType');
-const Ticket = require('../models/ticket');
+const Task = require('../models/task');
 const connectToMongoDB = require('../config/mongodb/connection');
 
 // Initial link type definitions
 const initialLinkTypes = [
   {
     name: 'Related',
-    description: 'Tickets are generally related or connected',
+    description: 'Tasks are generally related or connected',
     inverse: 'Related',
     icon: 'link',
     color: '#6B7280' // Gray
   },
   {
     name: 'Blocks',
-    description: 'This ticket blocks another ticket from proceeding',
+    description: 'This task blocks another task from proceeding',
     inverse: 'Blocked by',
     icon: 'ban',
     color: '#EF4444' // Red
   },
   {
     name: 'Blocked by',
-    description: 'This ticket is blocked by another ticket',
+    description: 'This task is blocked by another task',
     inverse: 'Blocks',
     icon: 'lock',
     color: '#EF4444' // Red
   },
   {
     name: 'Duplicates',
-    description: 'This ticket duplicates another ticket',
+    description: 'This task duplicates another task',
     inverse: 'Duplicated by',
     icon: 'copy',
     color: '#8B5CF6' // Purple
   },
   {
     name: 'Duplicated by',
-    description: 'This ticket is duplicated by another ticket',
+    description: 'This task is duplicated by another task',
     inverse: 'Duplicates',
     icon: 'clone',
     color: '#8B5CF6' // Purple
   },
   {
     name: 'Depends on',
-    description: 'This ticket depends on another ticket',
+    description: 'This task depends on another task',
     inverse: 'Required by',
     icon: 'arrow-right',
     color: '#3B82F6' // Blue
   },
   {
     name: 'Required by',
-    description: 'This ticket is required by another ticket',
+    description: 'This task is required by another task',
     inverse: 'Depends on',
     icon: 'arrow-left',
     color: '#3B82F6' // Blue
   },
   {
     name: 'Causes',
-    description: 'This ticket causes another issue',
+    description: 'This task causes another issue',
     inverse: 'Caused by',
     icon: 'exclamation-triangle',
     color: '#F59E0B' // Amber
   },
   {
     name: 'Caused by',
-    description: 'This ticket is caused by another issue',
+    description: 'This task is caused by another issue',
     inverse: 'Causes',
     icon: 'exclamation-circle',
     color: '#F59E0B' // Amber
   },
   {
     name: 'Child of',
-    description: 'This ticket is a child of another ticket',
+    description: 'This task is a child of another task',
     inverse: 'Parent of',
     icon: 'level-up-alt',
     color: '#10B981' // Green
   },
   {
     name: 'Parent of',
-    description: 'This ticket is a parent of another ticket',
+    description: 'This task is a parent of another task',
     inverse: 'Child of',
     icon: 'level-down-alt',
     color: '#10B981' // Green

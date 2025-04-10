@@ -29,7 +29,7 @@ const fallbackPriorities = [
 
 // DatabaseProvider component
 export const DatabaseProvider = ({ children }) => {
-  const [tickets, setTickets] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [types, setTypes] = useState(defaultTypes);
   const [states, setStates] = useState([]);
@@ -42,7 +42,7 @@ export const DatabaseProvider = ({ children }) => {
     const initializeData = async () => {
       setLoading(true);
       try {
-        await fetchTickets();
+        await fetchTasks();
         await fetchStatuses();
         await fetchPriorities();
       } catch (err) {
@@ -56,14 +56,14 @@ export const DatabaseProvider = ({ children }) => {
     initializeData();
   }, []);
 
-  // Fetch tickets
-  const fetchTickets = async () => {
+  // Fetch tasks
+  const fetchTasks = async () => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedTickets = await databaseService.getTickets();
-      setTickets(fetchedTickets);
-      return fetchedTickets;
+      const fetchedTasks = await databaseService.getTasks();
+      setTasks(fetchedTasks);
+      return fetchedTasks;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -106,13 +106,13 @@ export const DatabaseProvider = ({ children }) => {
     }
   };
 
-  // Get ticket by ID
-  const getTicket = async (id) => {
+  // Get task by ID
+  const getTask = async (id) => {
     setLoading(true);
     setError(null);
     try {
-      const ticket = await databaseService.getTicketById(id);
-      return ticket;
+      const task = await databaseService.getTaskById(id);
+      return task;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -121,14 +121,14 @@ export const DatabaseProvider = ({ children }) => {
     }
   };
 
-  // Create ticket
-  const createTicket = async (ticketData) => {
+  // Create task
+  const createTask = async (taskData) => {
     setLoading(true);
     setError(null);
     try {
-      const newTicket = await databaseService.createTicket(ticketData);
-      setTickets(prev => [newTicket, ...prev]);
-      return { success: true, ticket: newTicket };
+      const newTask = await databaseService.createTask(taskData);
+      setTasks(prev => [newTask, ...prev]);
+      return { success: true, task: newTask };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -137,16 +137,16 @@ export const DatabaseProvider = ({ children }) => {
     }
   };
 
-  // Update ticket
-  const updateTicket = async (id, ticketData) => {
+  // Update task
+  const updateTask = async (id, taskData) => {
     setLoading(true);
     setError(null);
     try {
-      const updatedTicket = await databaseService.updateTicket(id, ticketData);
-      setTickets(prev => 
-        prev.map(ticket => ticket._id === id || ticket.id === id ? updatedTicket : ticket)
+      const updatedTask = await databaseService.updateTask(id, taskData);
+      setTasks(prev => 
+        prev.map(task => task._id === id || task.id === id ? updatedTask : task)
       );
-      return { success: true, ticket: updatedTicket };
+      return { success: true, task: updatedTask };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -155,13 +155,13 @@ export const DatabaseProvider = ({ children }) => {
     }
   };
 
-  // Delete ticket
-  const deleteTicket = async (id) => {
+  // Delete task
+  const deleteTask = async (id) => {
     setLoading(true);
     setError(null);
     try {
-      await databaseService.deleteTicket(id);
-      setTickets(prev => prev.filter(ticket => ticket._id !== id && ticket.id !== id));
+      await databaseService.deleteTask(id);
+      setTasks(prev => prev.filter(task => task._id !== id && task.id !== id));
       return { success: true };
     } catch (err) {
       setError(err.message);
@@ -171,16 +171,16 @@ export const DatabaseProvider = ({ children }) => {
     }
   };
 
-  // Add attachment to ticket
-  const addAttachment = async (ticketId, file) => {
+  // Add attachment to task
+  const addAttachment = async (taskId, file) => {
     setLoading(true);
     setError(null);
     try {
-      const updatedTicket = await databaseService.addAttachment(ticketId, file);
-      setTickets(prev => 
-        prev.map(ticket => ticket._id === ticketId || ticket.id === ticketId ? updatedTicket : ticket)
+      const updatedTask = await databaseService.addAttachment(taskId, file);
+      setTasks(prev => 
+        prev.map(task => task._id === taskId || task.id === taskId ? updatedTask : task)
       );
-      return updatedTicket;
+      return updatedTask;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -189,16 +189,16 @@ export const DatabaseProvider = ({ children }) => {
     }
   };
 
-  // Remove attachment from ticket
-  const removeAttachment = async (ticketId, attachmentId) => {
+  // Remove attachment from task
+  const removeAttachment = async (taskId, attachmentId) => {
     setLoading(true);
     setError(null);
     try {
-      const updatedTicket = await databaseService.removeAttachment(ticketId, attachmentId);
-      setTickets(prev => 
-        prev.map(ticket => ticket._id === ticketId || ticket.id === ticketId ? updatedTicket : ticket)
+      const updatedTask = await databaseService.removeAttachment(taskId, attachmentId);
+      setTasks(prev => 
+        prev.map(task => task._id === taskId || task.id === taskId ? updatedTask : task)
       );
-      return updatedTicket;
+      return updatedTask;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -216,18 +216,18 @@ export const DatabaseProvider = ({ children }) => {
 
   // Context value
   const value = {
-    tickets,
+    tasks,
     types,
     states,
     priorities,
     users,
     loading,
     error,
-    fetchTickets,
-    getTicket,
-    createTicket,
-    updateTicket,
-    deleteTicket,
+    fetchTasks,
+    getTask,
+    createTask,
+    updateTask,
+    deleteTask,
     addAttachment,
     removeAttachment,
     getUserDisplayName,

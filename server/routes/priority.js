@@ -97,13 +97,13 @@ router.delete('/:id', authenticateJWT, isAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Priority not found' });
     }
 
-    // Check if any tickets are using this priority
-    const Ticket = require('../models/ticket');
-    const ticketsUsingPriority = await Ticket.countDocuments({ priority: req.params.id });
-    if (ticketsUsingPriority > 0) {
+    // Check if any tasks are using this priority
+    const Task = require('../models/task');
+    const tasksUsingPriority = await Task.countDocuments({ priority: req.params.id });
+    if (tasksUsingPriority > 0) {
       return res.status(400).json({ 
-        message: 'Cannot delete: this priority is being used by tickets',
-        ticketCount: ticketsUsingPriority
+        message: 'Cannot delete: this priority is being used by tasks',
+        taskCount: tasksUsingPriority
       });
     }
 

@@ -61,11 +61,11 @@ const AboutPage = () => {
                   </h3>
                   <p className="text-coffee-dark mb-4">
                     Daily Grind was born in 2023 when a team of passionate developers and product managers 
-                    found themselves drowning in a sea of tickets, spreadsheets, and confusing agile tools.
+                    found themselves drowning in a sea of tasks, spreadsheets, and confusing agile tools.
                   </p>
                   <p className="text-coffee-dark mb-4">
                     Frustrated by complex interfaces and bloated features they rarely used, 
-                    they decided to brew something better – a ticket tracking system that would 
+                    they decided to brew something better – a task tracking system that would 
                     be as smooth and refreshing as their morning coffee.
                   </p>
                   <div className="flex items-center border-l-4 border-coffee-accent pl-4 italic text-coffee-medium">
@@ -202,7 +202,7 @@ const AboutPage = () => {
                 {
                   year: "2023",
                   title: "The First Brew",
-                  description: "Daily Grind launches with core ticket tracking functionality for small teams."
+                  description: "Daily Grind launches with core task tracking functionality for small teams."
                 },
                 {
                   year: "2024",

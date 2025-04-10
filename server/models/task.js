@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const TicketLinkSchema = new mongoose.Schema({
-  linkedTicket: {
+const TaskLinkSchema = new mongoose.Schema({
+  linkedTask: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Ticket',
+    ref: 'Task',
     required: true
   },
   linkType: {
@@ -17,7 +17,7 @@ const TicketLinkSchema = new mongoose.Schema({
   }
 });
 
-const TicketSchema = new mongoose.Schema({
+const TaskSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
@@ -55,7 +55,7 @@ const TicketSchema = new mongoose.Schema({
     ref: 'Feature',
     default: null
   },
-  links: [TicketLinkSchema],
+  links: [TaskLinkSchema],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -92,16 +92,16 @@ const TicketSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Calculate the splash count - number of times a ticket has "splashed" from one sprint to another
-TicketSchema.virtual('splashCount').get(function() {
-  // If the ticket is in 0 or 1 sprints, splashCount is 0
+// Calculate the splash count - number of times a task has "splashed" from one sprint to another
+TaskSchema.virtual('splashCount').get(function() {
+  // If the task is in 0 or 1 sprints, splashCount is 0
   // Otherwise, splashCount is (number of sprints - 1)
   const sprintCount = this.sprints ? this.sprints.length : 0;
   return sprintCount <= 1 ? 0 : sprintCount - 1;
 });
 
 // Update the updatedAt field before saving and set default status and priority if not provided
-TicketSchema.pre('save', async function(next) {
+TaskSchema.pre('save', async function(next) {
   this.updatedAt = new Date(Date.now()).toISOString();
   
   try {
@@ -134,6 +134,6 @@ TicketSchema.pre('save', async function(next) {
   }
 });
 
-const Ticket = mongoose.model('Ticket', TicketSchema);
+const Task = mongoose.model('Task', TaskSchema);
 
-module.exports = Ticket;
+module.exports = Task;

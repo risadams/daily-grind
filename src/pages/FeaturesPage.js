@@ -92,8 +92,8 @@ const FeaturesPage = () => {
             {[
               {
                 icon: <FaClipboardList className="h-8 w-8" />,
-                title: "Ticket Management",
-                description: "Create, organize, and track tickets through your workflow with ease."
+                title: "Task Management",
+                description: "Create, organize, and track tasks through your workflow with ease."
               },
               {
                 icon: <FaCalendarAlt className="h-8 w-8" />,
@@ -148,20 +148,20 @@ const FeaturesPage = () => {
 
       {/* Detailed Feature Sections */}
       <FeatureSection
-        title="Intuitive Ticket Management"
-        description="Create, organize, and prioritize tickets with our intuitive interface. No more complicated setups or confusing workflows."
+        title="Intuitive Task Management"
+        description="Create, organize, and prioritize tasks with our intuitive interface. No more complicated setups or confusing workflows."
         image="/images/dashboard-preview.png"
-        imageAlt="Ticket management dashboard"
+        imageAlt="Task management dashboard"
         icon={<FaClipboardList className="h-6 w-6" />}
       >
         <FeatureList features={[
           { 
-            title: "Custom Ticket Fields",
-            description: "Customize your tickets with fields that match your team's workflow."
+            title: "Custom Task Fields",
+            description: "Customize your tasks with fields that match your team's workflow."
           },
           { 
             title: "Drag & Drop Interface",
-            description: "Move tickets through your workflow with simple drag and drop actions."
+            description: "Move tasks through your workflow with simple drag and drop actions."
           },
           { 
             title: "Priority Management",
@@ -239,7 +239,7 @@ const FeaturesPage = () => {
       >
         <FeatureList features={[
           { 
-            title: "Ticket Comments & Discussions",
+            title: "Task Comments & Discussions",
             description: "Have focused discussions right where the work happens."
           },
           { 
@@ -248,11 +248,11 @@ const FeaturesPage = () => {
           },
           { 
             title: "File Attachments",
-            description: "Attach files, images, and documents to tickets for easy reference."
+            description: "Attach files, images, and documents to tasks for easy reference."
           },
           { 
             title: "User Assignments",
-            description: "Assign tickets to team members with clear ownership."
+            description: "Assign tasks to team members with clear ownership."
           }
         ]} />
       </FeatureSection>
