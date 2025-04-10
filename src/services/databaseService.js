@@ -175,6 +175,110 @@ const removeAttachment = async (ticketId, attachmentId) => {
   }
 };
 
+// Status API
+const getStatuses = async () => {
+  initializeAxios();
+  try {
+    // Try various possible endpoint paths for status
+    let response;
+    try {
+      response = await axios.get(`${API_URL}/statuses`); // Try plural form first
+    } catch (err) {
+      if (err.response?.status === 404) {
+        try {
+          response = await axios.get(`${API_URL}/status`); // Try singular form
+        } catch (innerErr) {
+          if (innerErr.response?.status === 404) {
+            // Try alternative endpoints
+            response = await axios.get(`${API_URL}/ticket/statuses`);
+          } else {
+            throw innerErr;
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch statuses:', error);
+    // Try to construct statuses from tickets if API fails
+    try {
+      const tickets = await getTickets();
+      if (tickets && tickets.length > 0) {
+        // Extract unique status objects from tickets
+        const uniqueStatuses = {};
+        tickets.forEach(ticket => {
+          if (ticket.status && typeof ticket.status === 'object' && ticket.status._id) {
+            uniqueStatuses[ticket.status._id] = ticket.status;
+          }
+        });
+        const extractedStatuses = Object.values(uniqueStatuses);
+        if (extractedStatuses.length > 0) {
+          console.log('Using status data extracted from tickets:', extractedStatuses);
+          return extractedStatuses;
+        }
+      }
+    } catch (extractError) {
+      console.error('Failed to extract statuses from tickets:', extractError);
+    }
+    
+    throw new Error(error.response?.data?.message || 'Failed to fetch statuses');
+  }
+};
+
+// Priorities API
+const getPriorities = async () => {
+  initializeAxios();
+  try {
+    // Try various possible endpoint paths for priority
+    let response;
+    try {
+      response = await axios.get(`${API_URL}/priorities`); // Try plural form first
+    } catch (err) {
+      if (err.response?.status === 404) {
+        try {
+          response = await axios.get(`${API_URL}/priority`); // Try singular form
+        } catch (innerErr) {
+          if (innerErr.response?.status === 404) {
+            // Try alternative endpoints
+            response = await axios.get(`${API_URL}/ticket/priorities`);
+          } else {
+            throw innerErr;
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch priorities:', error);
+    // Try to construct priorities from tickets if API fails
+    try {
+      const tickets = await getTickets();
+      if (tickets && tickets.length > 0) {
+        // Extract unique priority objects from tickets
+        const uniquePriorities = {};
+        tickets.forEach(ticket => {
+          if (ticket.priority && typeof ticket.priority === 'object' && ticket.priority._id) {
+            uniquePriorities[ticket.priority._id] = ticket.priority;
+          }
+        });
+        const extractedPriorities = Object.values(uniquePriorities);
+        if (extractedPriorities.length > 0) {
+          console.log('Using priority data extracted from tickets:', extractedPriorities);
+          return extractedPriorities;
+        }
+      }
+    } catch (extractError) {
+      console.error('Failed to extract priorities from tickets:', extractError);
+    }
+    
+    throw new Error(error.response?.data?.message || 'Failed to fetch priorities');
+  }
+};
+
 const databaseService = {
   getTickets,
   getTicketById,
@@ -190,7 +294,9 @@ const databaseService = {
   deleteTeam,
   addTeamMember,
   updateTeamMemberRoles,
-  removeTeamMember
+  removeTeamMember,
+  getStatuses,
+  getPriorities
 };
 
 export default databaseService;

@@ -4,7 +4,7 @@ import databaseService from '../services/databaseService.js';
 // Create context
 export const DatabaseContext = createContext();
 
-// Mock data for types, states, and priorities
+// Mock data for types, but statuses and priorities will come from the API
 const defaultTypes = [
   { id: '1', name: 'Bug' },
   { id: '2', name: 'Feature' },
@@ -12,7 +12,8 @@ const defaultTypes = [
   { id: '4', name: 'Improvement' }
 ];
 
-const defaultStates = [
+// Fallback data only used if API fails
+const fallbackStates = [
   { id: '1', name: 'To Do' },
   { id: '2', name: 'In Progress' },
   { id: '3', name: 'In Review' },
@@ -20,7 +21,7 @@ const defaultStates = [
   { id: '5', name: "Won't Fix" }
 ];
 
-const defaultPriorities = [
+const fallbackPriorities = [
   { id: '1', name: 'Low' },
   { id: '2', name: 'Medium' },
   { id: '3', name: 'High' }
@@ -31,8 +32,8 @@ export const DatabaseProvider = ({ children }) => {
   const [tickets, setTickets] = useState([]);
   const [users, setUsers] = useState([]);
   const [types, setTypes] = useState(defaultTypes);
-  const [states, setStates] = useState(defaultStates);
-  const [priorities, setPriorities] = useState(defaultPriorities);
+  const [states, setStates] = useState([]);
+  const [priorities, setPriorities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -42,8 +43,8 @@ export const DatabaseProvider = ({ children }) => {
       setLoading(true);
       try {
         await fetchTickets();
-        // If you have API endpoints for these, you would fetch them here
-        // For now, we're using the default mock data
+        await fetchStatuses();
+        await fetchPriorities();
       } catch (err) {
         setError('Failed to initialize data');
         console.error(err);
@@ -68,6 +69,40 @@ export const DatabaseProvider = ({ children }) => {
       throw err;
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Fetch statuses
+  const fetchStatuses = async () => {
+    try {
+      const fetchedStatuses = await databaseService.getStatuses();
+      if (fetchedStatuses && Array.isArray(fetchedStatuses) && fetchedStatuses.length > 0) {
+        console.log('Fetched statuses from API:', fetchedStatuses);
+        setStates(fetchedStatuses);
+      } else {
+        console.warn('No statuses returned from API, using fallback data');
+        setStates(fallbackStates);
+      }
+    } catch (err) {
+      console.error('Error fetching statuses:', err);
+      setStates(fallbackStates);
+    }
+  };
+  
+  // Fetch priorities
+  const fetchPriorities = async () => {
+    try {
+      const fetchedPriorities = await databaseService.getPriorities();
+      if (fetchedPriorities && Array.isArray(fetchedPriorities) && fetchedPriorities.length > 0) {
+        console.log('Fetched priorities from API:', fetchedPriorities);
+        setPriorities(fetchedPriorities);
+      } else {
+        console.warn('No priorities returned from API, using fallback data');
+        setPriorities(fallbackPriorities);
+      }
+    } catch (err) {
+      console.error('Error fetching priorities:', err);
+      setPriorities(fallbackPriorities);
     }
   };
 
@@ -195,7 +230,9 @@ export const DatabaseProvider = ({ children }) => {
     deleteTicket,
     addAttachment,
     removeAttachment,
-    getUserDisplayName
+    getUserDisplayName,
+    fetchStatuses,
+    fetchPriorities
   };
 
   return (
